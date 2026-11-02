@@ -167,15 +167,11 @@ export async function requestDeletion(formData: FormData) {
 export async function eraseWorkspace(formData: FormData) {
   const workspace = await workspaceOrRedirect();
   if (!erasureConfirmed(formData.get("confirm"))) return;
-  await prisma.deletionRequest.create({
-    data: {
-      workspaceId: workspace.id,
-      contact: "in-app erasure",
-      detail: "Creator confirmed irreversible erasure of this workspace.",
-      status: "erased",
-    },
-  });
-  await prisma.workspace.delete({ where: { id: workspace.id } });
+  // Erasure includes request contact/detail rather than orphaning them via SetNull.
+  await prisma.$transaction([
+    prisma.deletionRequest.deleteMany({ where: { workspaceId: workspace.id } }),
+    prisma.workspace.delete({ where: { id: workspace.id } }),
+  ]);
   await clearSessionCookie();
   redirect("/?deleted=1");
 }

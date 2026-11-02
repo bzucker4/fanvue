@@ -25,6 +25,8 @@ export interface FanvueChatMessage {
 }
 
 export interface MappedMessage {
+  /** Counterpart from the owning chat, not a globally shared broadcast ID. */
+  fanvueFanId?: string;
   messageId: string;
   messageType: string;
   sentAt: string;
@@ -97,7 +99,7 @@ export function nextMessageCursor(
   if (typeof hasMore !== "boolean") {
     return { cursor: null, hasMore: false, paginationKnown: false };
   }
-  if (!hasMore || data.length === 0) {
+  if (!hasMore) {
     return { cursor: null, hasMore: false, paginationKnown: true };
   }
   const last = data[data.length - 1];

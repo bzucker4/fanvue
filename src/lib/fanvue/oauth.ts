@@ -80,6 +80,7 @@ async function requestToken(
 ): Promise<TokenSet> {
   const response = await fetchImpl(new URL("/oauth2/token", AUTH_BASE), {
     method: "POST",
+    signal: AbortSignal.timeout(15000),
     headers: {
       Authorization: basicAuthHeader(config.clientId, config.clientSecret),
       "Content-Type": "application/x-www-form-urlencoded",
@@ -100,6 +101,7 @@ async function requestToken(
     throw new Error("Token response did not include an access token and a refresh token.");
   }
   const expiresIn = typeof payload.expires_in === "number" ? payload.expires_in : 0;
+  if (!Number.isFinite(expiresIn) || expiresIn <= 0) throw new Error("Token response has an invalid expiry.");
   const scope = typeof payload.scope === "string" ? payload.scope : config.scopes.join(" ");
   return {
     accessToken: payload.access_token,

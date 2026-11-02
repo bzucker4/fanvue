@@ -2,6 +2,10 @@ import type { PrismaClient } from "@prisma/client";
 import { coverageForAudit } from "../live/import-failure";
 import type { AuditRequest, AuditStatus } from "./types";
 import { auditBundle } from "./engine";
+import { authorizedClient } from "../live/tokens";
+import { readEntitlement } from "../fanvue/entitlement";
+import { validationBypassForCreator } from "../fanvue/config";
+import { liveImportDecision } from "../live/import-gate";
 
 export async function loadAuditRequest(
   db: PrismaClient,
@@ -104,6 +108,14 @@ export async function loadAuditRequest(
 }
 
 export async function runWorkspaceAudit(db: PrismaClient, workspaceId: string, bundleId: string) {
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
+  if (!workspace) return null;
+  if (workspace.mode === "live") {
+    const { client, config } = await authorizedClient(db, workspaceId);
+    const entitlement = await readEntitlement(config, client, workspace.fanvueUserUuid);
+    const decision = liveImportDecision(entitlement, validationBypassForCreator(process.env, workspace.fanvueUserUuid));
+    if (!decision.allow) throw new Error(decision.message);
+  }
   const request = await loadAuditRequest(db, workspaceId, bundleId);
   if (!request) return null;
   return auditBundle(request);

@@ -10,28 +10,27 @@ export async function authorizedClient(db: PrismaClient, workspaceId: string, fe
   const config = readFanvueConfig();
   assertLiveCredentials(config);
   const key = decodeEncryptionKey(config.encryptionKey!);
-  const token = await db.oauthToken.findUnique({ where: { workspaceId } });
-  if (!token) {
-    throw new Error("This workspace has no Fanvue connection.");
-  }
-  let access = decryptString(token.accessCipher, key);
-  let refresh = decryptString(token.refreshCipher, key);
-  let expiresAt = token.expiresAt;
-  if (expiresAt.getTime() - Date.now() <= REFRESH_BUFFER_MS) {
-    const next = await refreshAccessToken(config, refresh, fetchImpl);
-    access = next.accessToken;
-    refresh = next.refreshToken;
-    expiresAt = new Date(Date.now() + next.expiresIn * 1000);
-    await db.oauthToken.update({
-      where: { workspaceId },
-      data: {
-        accessCipher: encryptString(access, key),
-        refreshCipher: encryptString(refresh, key),
-        expiresAt,
-        scope: next.scope,
-      },
-    });
-  }
+  // Lock the token row across processes; a second request must reread the rotated token.
+  const access = await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "workspaceId" FROM "OauthToken" WHERE "workspaceId" = ${workspaceId} FOR UPDATE`;
+    const token = await tx.oauthToken.findUnique({ where: { workspaceId } });
+    if (!token) throw new Error("This workspace has no Fanvue connection.");
+    let currentAccess = decryptString(token.accessCipher, key);
+    if (token.expiresAt.getTime() - Date.now() <= REFRESH_BUFFER_MS) {
+      const next = await refreshAccessToken(config, decryptString(token.refreshCipher, key), fetchImpl);
+      currentAccess = next.accessToken;
+      await tx.oauthToken.update({
+        where: { workspaceId },
+        data: {
+          accessCipher: encryptString(next.accessToken, key),
+          refreshCipher: encryptString(next.refreshToken, key),
+          expiresAt: new Date(Date.now() + next.expiresIn * 1000),
+          scope: next.scope,
+        },
+      });
+    }
+    return currentAccess;
+  }, { maxWait: 10000, timeout: 25000 });
   return { client: new FanvueClient(access, fetchImpl), config: config satisfies FanvueConfig };
 }
 

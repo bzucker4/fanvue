@@ -54,7 +54,18 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const report = await runWorkspaceAudit(prisma, workspace.id, bundle.id);
+  let report;
+  try {
+    report = await runWorkspaceAudit(prisma, workspace.id, bundle.id);
+  } catch {
+    return (
+      <WorkspaceShell mode={workspace.mode} displayName={workspace.displayName} current="/workspace/bundles">
+        <PageIntro kicker="Audit unavailable" title={bundle.name} />
+        <p>Live audit access could not be verified. Check your Fanvue connection and plan, then retry. Existing records have been kept.</p>
+        <SecondaryLink href="/workspace/connection">Check connection and plan</SecondaryLink>
+      </WorkspaceShell>
+    );
+  }
   if (!report) notFound();
   const visibleCoverage = coverageForAudit(workspace.importState);
   const importFailed = workspace.mode === "live" && workspace.importState?.status === "error";
