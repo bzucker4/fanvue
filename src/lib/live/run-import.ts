@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { validationImportEnabled } from "../fanvue/config";
+import { validationBypassForCreator } from "../fanvue/config";
 import { importPurchaseHistory, listMediaMetadata } from "../fanvue/import-history";
 import { readEntitlement } from "../fanvue/entitlement";
 import { applyLiveImport } from "./apply-import";
@@ -13,7 +13,10 @@ export async function runLiveImport(db: PrismaClient, workspaceId: string) {
   }
   const { client, config } = await authorizedClient(db, workspaceId);
   const entitlement = await readEntitlement(config, client, workspace.fanvueUserUuid);
-  const decision = liveImportDecision(entitlement, validationImportEnabled());
+  const decision = liveImportDecision(
+    entitlement,
+    validationBypassForCreator(process.env, workspace.fanvueUserUuid),
+  );
   if (!decision.allow) {
     throw new Error(decision.message);
   }

@@ -58,7 +58,7 @@ Documented behavior this app follows (checked against https://api.fanvue.com/doc
 - `creator.payment.succeeded` with `source: "message"` schedules a per-chat read. The event has a message id, not media ids, so the app does not invent attachments. Other payment sources are noted as outside this photo audit.
 - `creator.message.sent` is not a purchase. `creator.refund.created` and dispute events create reversal rows and do not delete the purchase.
 - API calls send `X-Fanvue-API-Version: 2025-06-26`, keep at most 5 requests in flight, and retry `429` responses using `Retry-After`.
-- Paid live import requires `GET /apps/{appUuid}/subscription/me` to report an active Fanvue subscription. The pay link is the documented App Store deeplink `https://www.fanvue.com/app-store/details/{appUuid}?plan={planUuid}`. There is no external checkout. `FANVUE_VALIDATION_IMPORT=true` is an explicit test-server exception so a review account can import without a charge. The workspace is labeled as a validation import.
+- Paid live import requires `GET /apps/{appUuid}/subscription/me` to report an active Fanvue subscription. The pay link is the documented App Store deeplink `https://www.fanvue.com/app-store/details/{appUuid}?plan={planUuid}`. There is no external checkout. `FANVUE_VALIDATION_IMPORT=true` is ignored unless `NODE_ENV` is `development` or `test` and the connected Fanvue user id is listed in `FANVUE_VALIDATION_CREATOR_IDS`. `npm start` sets production and ignores the flag. Other creators still need a Fanvue plan. The workspace is labeled as a validation import. Demo purchases are not used.
 
 ## Setup
 
@@ -66,8 +66,9 @@ Requirements: Node.js 22, PostgreSQL 16.
 
 ```bash
 cp .env.example .env
-# Fill SESSION_SECRET (32+ characters) and TOKEN_ENCRYPTION_KEY (32 bytes, base64).
-# Generate a key with:
+# SESSION_SECRET: at least 32 characters. Use 32 random bytes as hex:
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# TOKEN_ENCRYPTION_KEY: standard base64 that decodes to exactly 32 bytes:
 # node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 npm install
@@ -77,6 +78,33 @@ npm run dev
 
 Open http://localhost:3000 and choose “Open the sample audit”. The demo needs `DATABASE_URL` and `SESSION_SECRET` only.
 
+## Run and deploy
+
+This repository has no Dockerfile or host config. It runs as a Node.js process in front of PostgreSQL.
+
+Local development:
+
+```bash
+cp .env.example .env
+npm install
+npx prisma db push
+npm run dev
+```
+
+`npm run dev` sets `NODE_ENV=development`, which is the only app runtime that can honor the validation allowlist.
+
+Production on a Node host, with PostgreSQL reachable through `DATABASE_URL` and secrets set in the host, not in git:
+
+```bash
+npm ci
+npx prisma generate
+npx prisma db push
+npm run build
+npm start
+```
+
+`npm start` sets `NODE_ENV=production`. Put TLS in front of the process. Fanvue must be able to reach `https://<your-origin>/api/webhooks/fanvue`. Do not commit `.env`.
+
 ## Validate one connected account
 
 Fanvue has no sandbox. Every call hits the live API, and this app does not send messages or start a charge. The credentials below were empty in the environment that built this revision, so OAuth, import, and webhook delivery were not executed against Fanvue. The steps are what a test creator account needs.
@@ -85,8 +113,8 @@ Fanvue has no sandbox. Every call hits the live API, and this app does not send 
 2. On Authentication, enable `read:self`, `read:chat`, `read:media`, and `read:creator`. Add the redirect URI exactly: `{APP_ORIGIN}/api/oauth/callback`. Copy the client id and the client secret once.
 3. Register a second Fanvue account as the test creator. Authorize that account, not the account that owns the app. Do not put a password into Bundle Audit.
 4. Put the client id, client secret, `APP_ORIGIN`, `TOKEN_ENCRYPTION_KEY`, and `SESSION_SECRET` in `.env`. Leave `FANVUE_APP_UUID` empty until the app has billing, or set it together with `FANVUE_PLAN_UUID`.
-5. For the first read without a Fanvue charge, set `FANVUE_VALIDATION_IMPORT=true`. The connection screen then imports that creator’s own history and labels the workspace as a validation import. It does not load the sample story. Set the flag back to `false` before charging creators. Paid access uses the Fanvue plan deeplink only.
-6. Start the app, open `/connect`, and choose Continue to Fanvue. Accept the four read scopes. The callback stores encrypted tokens and opens `/workspace/connection`.
+5. Run `npm run dev` with `FANVUE_VALIDATION_IMPORT=true`. Connect the test creator first. Copy the Fanvue user id shown on the connection screen into `FANVUE_VALIDATION_CREATOR_IDS`, then restart the dev server. `npm start` ignores this bypass. Any other connected creator still needs an active Fanvue plan. The flag does not load the sample story.
+6. Open `/connect` and choose Continue to Fanvue. Accept the four read scopes. The callback stores encrypted tokens and opens `/workspace/connection`.
 7. The purchased PPV has to already exist in that creator’s chats. Create it in Fanvue’s own UI if you need one. This app has no `write:chat` scope and will not send it. Import purchase history. A successful import lists the fan, the paid attachments, the free preview, and whether broadcasts were included.
 8. In the library, confirm a duplicate only when you know two media ids are the same photo. Suggestions are not created automatically. Build a bundle from the reuploaded photo plus another purchased photo and one new photo, select the fan who bought the original, and open the audit. Confirmed overlap should cite the message id, price, and purchase time. The new photo should say no known purchase only when coverage is complete.
 9. Webhooks need a public HTTPS URL `{APP_ORIGIN}/api/webhooks/fanvue` and `FANVUE_WEBHOOK_SECRET` from the Events tab. Subscribe to `creator.payment.succeeded`, `creator.refund.created`, `creator.dispute.flagged`, `creator.dispute.created`, `creator.message.received`, `creator.message.sent`, and `creator.message.mass_sent`. A local process is not reachable by Fanvue until you give it a public HTTPS origin. Use the Events tab test delivery after you have authorized the app. Reconciliation is “Reconcile missed updates”, which walks per-chat history again. `startDate` is not used as the only catch-up, because it filters on send time and can miss a later purchase of an older message.
@@ -106,7 +134,8 @@ Live mode also needs:
 | `FANVUE_PLAN_UUID` | Active pricing-plan id for the App Store deeplink. |
 | `FANVUE_WEBHOOK_SECRET` | Per-app signing secret from the Events tab. |
 | `FANVUE_SCOPES` | Optional override. Defaults to the four read scopes above. |
-| `FANVUE_VALIDATION_IMPORT` | `true` only on a test server. Allows import without an active Fanvue plan. Does not load demo data. |
+| `FANVUE_VALIDATION_IMPORT` | Optional. `true` only while `NODE_ENV` is `development` or `test`. Ignored by `npm start`. |
+| `FANVUE_VALIDATION_CREATOR_IDS` | Required for that bypass. Comma-separated Fanvue user uuids. Other creators are not included. |
 | `SUPPORT_EMAIL` | Public support address. Replace the example. |
 | `SECURITY_EMAIL` | Vulnerability contact. Replace the example. |
 | `APP_OWNER_NAME` | Legal name of the operator. Replace the placeholder. |

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
 import { formatMoney, formatWhen, messageTypeLabel } from "@/lib/format";
-import { readFanvueConfig, validationImportEnabled } from "@/lib/fanvue/config";
+import { readFanvueConfig, validationBypassForCreator } from "@/lib/fanvue/config";
+import { validationBlockMessage } from "@/lib/live/import-gate";
 import { readEntitlement } from "@/lib/fanvue/entitlement";
 import { authorizedClient } from "@/lib/live/tokens";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -24,9 +25,12 @@ export default async function ConnectionPage({
     include: { fan: true, attachments: { include: { upload: true } }, reversals: true },
     orderBy: { purchasedAt: "desc" },
   });
-  const validation = validationImportEnabled();
+  const bypass =
+    workspace.mode === "live"
+      ? validationBypassForCreator(process.env, workspace.fanvueUserUuid)
+      : { allowed: false as const, reason: "disabled" as const };
   const entitlement = workspace.mode === "live" ? await loadEntitlement(workspace.id, workspace.fanvueUserUuid) : null;
-  const canImport = entitlement?.state === "active" || validation;
+  const canImport = entitlement?.state === "active" || bypass.allowed;
   const gaps = asStrings(state?.gaps);
   const unsupported = asStrings(state?.unsupported);
 
@@ -37,6 +41,9 @@ export default async function ConnectionPage({
           <p className="kicker">Connection and import</p>
           <h1 style={{ fontSize: "2.4rem" }}>{workspace.displayName}</h1>
           <p className="fine">{workspace.handle ? `@${workspace.handle}` : "No public handle"}</p>
+          {workspace.mode === "live" && workspace.fanvueUserUuid ? (
+            <p className="mono">Fanvue user id {workspace.fanvueUserUuid}</p>
+          ) : null}
         </div>
         {workspace.mode === "live" ? (
           <form action={importLiveHistory}>
@@ -88,7 +95,7 @@ export default async function ConnectionPage({
             The last import was a validation read. It is not an active Fanvue plan, and it did not use sample purchases.
           </p>
         ) : null}
-        {entitlement ? <EntitlementNote entitlement={entitlement} validation={validation} /> : null}
+        {entitlement ? <EntitlementNote entitlement={entitlement} bypass={bypass} /> : null}
       </section>
 
       {gaps.length > 0 ? (
@@ -162,10 +169,10 @@ export default async function ConnectionPage({
 
 function EntitlementNote({
   entitlement,
-  validation,
+  bypass,
 }: {
   entitlement: Awaited<ReturnType<typeof loadEntitlement>>;
-  validation: boolean;
+  bypass: ReturnType<typeof validationBypassForCreator>;
 }) {
   if (!entitlement) return null;
   if (entitlement.state === "active") {
@@ -176,16 +183,21 @@ function EntitlementNote({
       </p>
     );
   }
-  if (validation) {
+  if (bypass.allowed) {
     return (
       <p className="notice ok">
-        Validation import is on, so this server can read the connected account without an active Fanvue plan. Sample
-        purchases are not used. Set FANVUE_VALIDATION_IMPORT to false before charging creators.
+        This development server can import this allowlisted test creator without an active Fanvue plan. Other
+        connected accounts still need a plan. Sample purchases are not used.
+      </p>
+    );
+  }
+  const blocked = validationBlockMessage(bypass);
+  if (blocked) {
+    return (
+      <p className="notice error">
+        {blocked}{" "}
         {entitlement.state === "inactive" && entitlement.checkoutHref ? (
-          <>
-            {" "}
-            <a href={entitlement.checkoutHref}>The Fanvue plan deeplink stays available.</a>
-          </>
+          <a href={entitlement.checkoutHref}>The Fanvue plan deeplink stays available.</a>
         ) : null}
       </p>
     );

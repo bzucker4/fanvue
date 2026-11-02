@@ -50,9 +50,9 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
               </button>
             )}
             <p className="fine">
-              Paid live import uses a Fanvue plan. There is no external checkout. A test account can set
-              FANVUE_VALIDATION_IMPORT=true so the first import does not require a charge. That flag never loads the
-              sample workspace.
+              Paid live import uses a Fanvue plan. There is no external checkout. In development or test,{" "}
+              FANVUE_VALIDATION_IMPORT=true imports only the Fanvue user ids listed in FANVUE_VALIDATION_CREATOR_IDS.
+              Production ignores that flag. It never loads the sample workspace.
             </p>
           </article>
           <article className="card stack">

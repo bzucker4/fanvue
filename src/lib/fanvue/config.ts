@@ -66,13 +66,43 @@ export function liveCredentialsReady(config: FanvueConfig): boolean {
   return Boolean(config.clientId && config.clientSecret && config.redirectUri && config.encryptionKey);
 }
 
+const FANVUE_USER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type ValidationBypass =
+  | { allowed: true }
+  | {
+      allowed: false;
+      reason: "disabled" | "production" | "allowlist_empty" | "creator_unknown" | "creator_not_listed";
+    };
+
 /**
- * Explicit opt-in for a test creator account.
- * Fanvue has no sandbox and review accounts must not be asked to pay.
- * This flag never fills a live workspace with demo purchases.
+ * Development and test bypass only.
+ * FANVUE_VALIDATION_IMPORT=true does nothing unless NODE_ENV is development or test
+ * and the connected Fanvue user id is listed in FANVUE_VALIDATION_CREATOR_IDS.
+ * Production ignores the flag. Other creators still need an active Fanvue plan.
+ * This never loads demo purchases.
  */
-export function validationImportEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return clean(env.FANVUE_VALIDATION_IMPORT).toLowerCase() === "true";
+export function validationBypassForCreator(
+  env: NodeJS.ProcessEnv,
+  creatorUuid: string | null,
+): ValidationBypass {
+  if (clean(env.FANVUE_VALIDATION_IMPORT).toLowerCase() !== "true") {
+    return { allowed: false, reason: "disabled" };
+  }
+  const nodeEnv = clean(env.NODE_ENV).toLowerCase();
+  if (nodeEnv !== "development" && nodeEnv !== "test") {
+    return { allowed: false, reason: "production" };
+  }
+  const allowed = new Set(
+    clean(env.FANVUE_VALIDATION_CREATOR_IDS)
+      .split(/[\s,]+/)
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => FANVUE_USER_UUID.test(value)),
+  );
+  if (allowed.size === 0) return { allowed: false, reason: "allowlist_empty" };
+  if (!creatorUuid) return { allowed: false, reason: "creator_unknown" };
+  if (!allowed.has(creatorUuid.toLowerCase())) return { allowed: false, reason: "creator_not_listed" };
+  return { allowed: true };
 }
 
 export function assertLiveCredentials(config: FanvueConfig): void {
