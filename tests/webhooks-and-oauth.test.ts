@@ -75,6 +75,31 @@ describe("webhook signatures and decisions", () => {
     }
   });
 
+  it("does not treat a mass send as a per-fan purchase", () => {
+    const decision = decideWebhook(
+      {
+        id: "evt-mass",
+        type: "creator.message.mass_sent",
+        data: {
+          object: "mass_message",
+          uuid: "7c1e9d24-8a3f-4b52-9d61-0f2a3b4c5d6e",
+          message_type: "BROADCAST",
+          media_uuids: ["b8c47a91-3f2d-4a55-b7e8-1c9d2e4f5a6b"],
+          price: 900,
+          creator: { uuid: "creator-uuid" },
+        },
+      },
+      false,
+    );
+    expect(decision.action).toBe("store_message_signal");
+    if (decision.action === "store_message_signal") {
+      expect(decision.hydration?.fanvueFanId).toBeNull();
+      expect(decision.hydration?.messageId).toBe("7c1e9d24-8a3f-4b52-9d61-0f2a3b4c5d6e");
+      expect(decision.hydration?.kind).toBe("message_signal");
+      expect(JSON.stringify(decision.hydration)).not.toContain("b8c47a91");
+    }
+  });
+
   it("treats a sent message as a signal, not a purchase", () => {
     const decision = decideWebhook(
       {

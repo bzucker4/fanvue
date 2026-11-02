@@ -50,8 +50,9 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
               </button>
             )}
             <p className="fine">
-              Paid live import and audit use Fanvue Payments. After connecting, an inactive plan links to the Fanvue
-              App Store. There is no external checkout.
+              Paid live import uses a Fanvue plan. There is no external checkout. A test account can set
+              FANVUE_VALIDATION_IMPORT=true so the first import does not require a charge. That flag never loads the
+              sample workspace.
             </p>
           </article>
           <article className="card stack">

@@ -90,6 +90,12 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
           History {report.coverage.historyComplete ? "is marked complete for the imported chats" : "is incomplete"}.
           Broadcast messages are {report.coverage.broadcastsIncluded ? "included, because per-chat history was used" : "not included"}.
         </p>
+        {workspace.importState?.billingMode === "validation" ? (
+          <p className="notice ok">
+            This audit uses a validation import. It is not covered by an active Fanvue plan, and it is not the sample
+            workspace.
+          </p>
+        ) : null}
         <p className="fine">
           “No known purchase overlap” only describes purchased PPV chat attachments in that history. It does not say a
           fan has never seen the photo, and a message that was merely sent does not count.

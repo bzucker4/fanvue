@@ -228,6 +228,8 @@ model ImportState {
   unsupported        Json
   methodNote         String
   lastError          String?
+  /// fanvue_plan, validation, or unknown. Validation is never a billed entitlement.
+  billingMode        String    @default("unknown")
   updatedAt          DateTime  @updatedAt
 }
 
@@ -236,6 +238,7 @@ model WebhookEvent {
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   type        String
+  processed   Boolean   @default(false)
   receivedAt  DateTime  @default(now())
 
   @@index([workspaceId])

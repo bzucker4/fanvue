@@ -11,6 +11,7 @@ export async function applyLiveImport(
   workspaceId: string,
   draft: ImportDraft,
   media: MediaMetadata[],
+  options: { billingMode?: "fanvue_plan" | "validation" | "unknown" } = {},
 ): Promise<void> {
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
   if (!workspace || workspace.mode !== "live") {
@@ -43,7 +44,7 @@ export async function applyLiveImport(
     uploadIdByMedia.set(item.uuid, saved);
   }
 
-  async function ensureMedia(mediaId: string, kindHint: "image" | "other" = "image") {
+  async function ensureMedia(mediaId: string, kindHint: "image" | "video" | "other" = "other") {
     const existing = uploadIdByMedia.get(mediaId);
     if (existing) return existing;
     const saved = await upsertUpload(db, workspaceId, {
@@ -71,8 +72,8 @@ export async function applyLiveImport(
     const fanId = fanIdByUuid.get(draft.fanByMessage[offer.messageId] ?? "");
     if (!fanId) continue;
     const paidIds: string[] = [];
-    for (const mediaId of offer.paidMediaIds) paidIds.push(await ensureMedia(mediaId));
-    const preview = offer.previewMediaId ? await ensureMedia(offer.previewMediaId) : null;
+    for (const mediaId of offer.paidMediaIds) paidIds.push(await ensureMedia(mediaId, offer.attachmentKind));
+    const preview = offer.previewMediaId ? await ensureMedia(offer.previewMediaId, offer.attachmentKind) : null;
     await db.sentOffer.upsert({
       where: { workspaceId_messageId: { workspaceId, messageId: offer.messageId } },
       create: {
@@ -124,6 +125,7 @@ export async function applyLiveImport(
       unsupported: draft.unsupported,
       methodNote: draft.methodNote,
       lastError: null,
+      billingMode: options.billingMode ?? "unknown",
     },
     update: {
       status: draft.historyComplete ? "ready" : "incomplete",
@@ -138,6 +140,7 @@ export async function applyLiveImport(
       unsupported: draft.unsupported,
       methodNote: draft.methodNote,
       lastError: null,
+      billingMode: options.billingMode ?? "unknown",
     },
   });
 }
@@ -172,14 +175,14 @@ async function storePurchase(
   workspaceId: string,
   fanId: string,
   purchase: MappedMessage,
-  ensureMedia: (mediaId: string) => Promise<string>,
+  ensureMedia: (mediaId: string, kind: "image" | "video" | "other") => Promise<string>,
 ) {
   const paid: { uploadId: string; role: string }[] = [];
   for (const mediaId of purchase.paidMediaIds) {
-    paid.push({ uploadId: await ensureMedia(mediaId), role: "paid" });
+    paid.push({ uploadId: await ensureMedia(mediaId, purchase.attachmentKind), role: "paid" });
   }
   if (purchase.previewMediaId) {
-    paid.push({ uploadId: await ensureMedia(purchase.previewMediaId), role: "preview" });
+    paid.push({ uploadId: await ensureMedia(purchase.previewMediaId, purchase.attachmentKind), role: "preview" });
   }
   const existing = await db.purchase.findUnique({
     where: { workspaceId_messageId: { workspaceId, messageId: purchase.messageId } },

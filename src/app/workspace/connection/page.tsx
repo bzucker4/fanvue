@@ -2,7 +2,7 @@ import Link from "next/link";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
 import { formatMoney, formatWhen, messageTypeLabel } from "@/lib/format";
-import { readFanvueConfig } from "@/lib/fanvue/config";
+import { readFanvueConfig, validationImportEnabled } from "@/lib/fanvue/config";
 import { readEntitlement } from "@/lib/fanvue/entitlement";
 import { authorizedClient } from "@/lib/live/tokens";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -24,7 +24,9 @@ export default async function ConnectionPage({
     include: { fan: true, attachments: { include: { upload: true } }, reversals: true },
     orderBy: { purchasedAt: "desc" },
   });
+  const validation = validationImportEnabled();
   const entitlement = workspace.mode === "live" ? await loadEntitlement(workspace.id, workspace.fanvueUserUuid) : null;
+  const canImport = entitlement?.state === "active" || validation;
   const gaps = asStrings(state?.gaps);
   const unsupported = asStrings(state?.unsupported);
 
@@ -38,7 +40,7 @@ export default async function ConnectionPage({
         </div>
         {workspace.mode === "live" ? (
           <form action={importLiveHistory}>
-            <button className="button" type="submit" disabled={entitlement?.state !== "active"}>
+            <button className="button" type="submit" disabled={!canImport}>
               {state?.lastSynchronizedAt ? "Reconcile missed updates" : "Import purchase history"}
             </button>
           </form>
@@ -81,7 +83,12 @@ export default async function ConnectionPage({
           Chats discovered {state?.chatsDiscovered ?? 0}, chats imported {state?.chatsImported ?? 0}, messages scanned{" "}
           {state?.messagesScanned ?? 0}. Unread state is preserved on live imports by sending markAsRead=false.
         </p>
-        {entitlement ? <EntitlementNote entitlement={entitlement} /> : null}
+        {workspace.importState?.billingMode === "validation" ? (
+          <p className="notice ok">
+            The last import was a validation read. It is not an active Fanvue plan, and it did not use sample purchases.
+          </p>
+        ) : null}
+        {entitlement ? <EntitlementNote entitlement={entitlement} validation={validation} /> : null}
       </section>
 
       {gaps.length > 0 ? (
@@ -109,7 +116,7 @@ export default async function ConnectionPage({
             <h3>No purchased PPV attachments yet</h3>
             <p className="fine">
               {workspace.mode === "live"
-                ? "Import history after an active Fanvue plan is in place. An empty live workspace is not filled with the sample story."
+                ? "Import history from the connected account. An empty live workspace is not filled with the sample story."
                 : "The sample workspace should already contain Jordan Hale’s purchases. Reload the demo if this stays empty."}
             </p>
           </div>
@@ -155,8 +162,10 @@ export default async function ConnectionPage({
 
 function EntitlementNote({
   entitlement,
+  validation,
 }: {
   entitlement: Awaited<ReturnType<typeof loadEntitlement>>;
+  validation: boolean;
 }) {
   if (!entitlement) return null;
   if (entitlement.state === "active") {
@@ -164,6 +173,20 @@ function EntitlementNote({
       <p className="notice ok">
         Fanvue plan is active{entitlement.planName ? ` (${entitlement.planName})` : ""}.
         {entitlement.currentPeriodEnd ? ` Current period ends ${formatWhen(entitlement.currentPeriodEnd)}.` : ""}
+      </p>
+    );
+  }
+  if (validation) {
+    return (
+      <p className="notice ok">
+        Validation import is on, so this server can read the connected account without an active Fanvue plan. Sample
+        purchases are not used. Set FANVUE_VALIDATION_IMPORT to false before charging creators.
+        {entitlement.state === "inactive" && entitlement.checkoutHref ? (
+          <>
+            {" "}
+            <a href={entitlement.checkoutHref}>The Fanvue plan deeplink stays available.</a>
+          </>
+        ) : null}
       </p>
     );
   }

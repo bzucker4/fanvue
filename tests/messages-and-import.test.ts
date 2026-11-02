@@ -71,10 +71,10 @@ describe("per-chat import", () => {
     const fetchImpl: typeof fetch = async (input) => {
       const url = input instanceof URL ? `${input.pathname}${input.search}` : String(input);
       calls.push(url);
-      if (url.startsWith("/chats?")) {
+      if (url.startsWith("/v1/chats?")) {
         return json({
           data: [{ user: { uuid: "fan-1", handle: "jordan.hale", displayName: "Jordan Hale" } }],
-          pagination: { hasMore: false },
+          nextCursor: null,
         });
       }
       if (url.includes("/messages")) {
@@ -101,8 +101,8 @@ describe("per-chat import", () => {
   it("marks coverage incomplete when a message page omits hasMore", async () => {
     const fetchImpl: typeof fetch = async (input) => {
       const url = input instanceof URL ? `${input.pathname}${input.search}` : String(input);
-      if (url.startsWith("/chats?")) {
-        return json({ data: [{ user: { uuid: "fan-1", handle: "a", displayName: "A" } }] });
+      if (url.startsWith("/v1/chats?")) {
+        return json({ data: [{ user: { uuid: "fan-1", handle: "a", displayName: "A" } }], nextCursor: null });
       }
       return json({ data: [purchased] });
     };
@@ -115,8 +115,8 @@ describe("per-chat import", () => {
     const cursors: string[] = [];
     const fetchImpl: typeof fetch = async (input) => {
       const url = input instanceof URL ? `${input.pathname}${input.search}` : String(input);
-      if (url.startsWith("/chats?")) {
-        return json({ data: [{ user: { uuid: "fan-1", handle: "a", displayName: "A" } }], pagination: { hasMore: false } });
+      if (url.startsWith("/v1/chats?")) {
+        return json({ data: [{ user: { uuid: "fan-1", handle: "a", displayName: "A" } }], nextCursor: null });
       }
       const parsed = new URL(url, "https://api.fanvue.com");
       cursors.push(parsed.searchParams.get("beforeMessageUuid") ?? "");

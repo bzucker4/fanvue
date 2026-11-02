@@ -47,9 +47,10 @@ Privacy, terms, support, and the security contact include a banner where the own
 
 Documented behavior this app follows (checked against https://api.fanvue.com/docs/llms.txt and the guides linked there):
 
-- OAuth 2.0 with PKCE at `https://auth.fanvue.com/oauth2/auth`, token exchange with `client_secret_basic` at `https://auth.fanvue.com/oauth2/token`. Refresh tokens are rotated and stored before they are used again.
+- OAuth 2.0 with PKCE at `https://auth.fanvue.com/oauth2/auth`, token exchange with `client_secret_basic` at `https://auth.fanvue.com/oauth2/token`. This is the hand-written confidential-client flow from Fanvue’s implementation guide. The Builder SDK is optional and is not used. Refresh tokens are rotated and stored before they are used again.
 - Scopes: `read:self`, `read:chat`, `read:media`, `read:creator`, plus `openid`, `offline_access`, and `offline`. No write scopes.
-- Purchase backfill uses `GET /chats/{userUuid}/messages` with `markAsRead=false` and `beforeMessageUuid`. Fanvue documents that per-chat history includes broadcast messages. `POST /chats/messages/batch` is not used, because that bulk read excludes mass messages.
+- Purchase backfill uses the unversioned `GET /chats/{userUuid}/messages` with `markAsRead=false` and `beforeMessageUuid`. Fanvue documents that this per-chat history includes broadcast messages. The `/v1` message route removes those parameters and `pagination.hasMore`, so message reads stay on the unversioned route. `POST /chats/messages/batch` is not used, because that bulk read excludes mass messages.
+- Chat and media lists use `GET /v1/chats` and `GET /v1/media`. Both walk `nextCursor` and stop when it is null. A missing cursor marks that list incomplete. Variant URLs are not requested on the media import.
 - A missing `pagination.hasMore` stops that chat and marks coverage incomplete instead of guessing.
 - `purchasedAt` on a priced message is the purchase timestamp. `mediaPreviewUuid` is excluded from paid attachments.
 - Media metadata is stored as ids, type, and status. Signed variant URLs are resolved for the current thumbnail view and are not written to the database. Media files are not downloaded for fingerprinting.
@@ -57,7 +58,7 @@ Documented behavior this app follows (checked against https://api.fanvue.com/doc
 - `creator.payment.succeeded` with `source: "message"` schedules a per-chat read. The event has a message id, not media ids, so the app does not invent attachments. Other payment sources are noted as outside this photo audit.
 - `creator.message.sent` is not a purchase. `creator.refund.created` and dispute events create reversal rows and do not delete the purchase.
 - API calls send `X-Fanvue-API-Version: 2025-06-26`, keep at most 5 requests in flight, and retry `429` responses using `Retry-After`.
-- Live import and live audit require `GET /apps/{appUuid}/subscription/me` to report an active Fanvue subscription. The pay link is the documented App Store deeplink `https://www.fanvue.com/app-store/details/{appUuid}?plan={planUuid}`. There is no external checkout.
+- Paid live import requires `GET /apps/{appUuid}/subscription/me` to report an active Fanvue subscription. The pay link is the documented App Store deeplink `https://www.fanvue.com/app-store/details/{appUuid}?plan={planUuid}`. There is no external checkout. `FANVUE_VALIDATION_IMPORT=true` is an explicit test-server exception so a review account can import without a charge. The workspace is labeled as a validation import.
 
 ## Setup
 
@@ -76,6 +77,22 @@ npm run dev
 
 Open http://localhost:3000 and choose “Open the sample audit”. The demo needs `DATABASE_URL` and `SESSION_SECRET` only.
 
+## Validate one connected account
+
+Fanvue has no sandbox. Every call hits the live API, and this app does not send messages or start a charge. The credentials below were empty in the environment that built this revision, so OAuth, import, and webhook delivery were not executed against Fanvue. The steps are what a test creator account needs.
+
+1. In the Fanvue Developer Area, create an app. API-only is enough to authorize and call the API. Choose off-platform, with your public HTTPS origin, when you want an App Store listing and Fanvue billing. Keep a separate app for production.
+2. On Authentication, enable `read:self`, `read:chat`, `read:media`, and `read:creator`. Add the redirect URI exactly: `{APP_ORIGIN}/api/oauth/callback`. Copy the client id and the client secret once.
+3. Register a second Fanvue account as the test creator. Authorize that account, not the account that owns the app. Do not put a password into Bundle Audit.
+4. Put the client id, client secret, `APP_ORIGIN`, `TOKEN_ENCRYPTION_KEY`, and `SESSION_SECRET` in `.env`. Leave `FANVUE_APP_UUID` empty until the app has billing, or set it together with `FANVUE_PLAN_UUID`.
+5. For the first read without a Fanvue charge, set `FANVUE_VALIDATION_IMPORT=true`. The connection screen then imports that creator’s own history and labels the workspace as a validation import. It does not load the sample story. Set the flag back to `false` before charging creators. Paid access uses the Fanvue plan deeplink only.
+6. Start the app, open `/connect`, and choose Continue to Fanvue. Accept the four read scopes. The callback stores encrypted tokens and opens `/workspace/connection`.
+7. The purchased PPV has to already exist in that creator’s chats. Create it in Fanvue’s own UI if you need one. This app has no `write:chat` scope and will not send it. Import purchase history. A successful import lists the fan, the paid attachments, the free preview, and whether broadcasts were included.
+8. In the library, confirm a duplicate only when you know two media ids are the same photo. Suggestions are not created automatically. Build a bundle from the reuploaded photo plus another purchased photo and one new photo, select the fan who bought the original, and open the audit. Confirmed overlap should cite the message id, price, and purchase time. The new photo should say no known purchase only when coverage is complete.
+9. Webhooks need a public HTTPS URL `{APP_ORIGIN}/api/webhooks/fanvue` and `FANVUE_WEBHOOK_SECRET` from the Events tab. Subscribe to `creator.payment.succeeded`, `creator.refund.created`, `creator.dispute.flagged`, `creator.dispute.created`, `creator.message.received`, `creator.message.sent`, and `creator.message.mass_sent`. A local process is not reachable by Fanvue until you give it a public HTTPS origin. Use the Events tab test delivery after you have authorized the app. Reconciliation is “Reconcile missed updates”, which walks per-chat history again. `startDate` is not used as the only catch-up, because it filters on send time and can miss a later purchase of an older message.
+
+`npm test` covers this path with fixtures shaped like the documented message, payment, and mass-message payloads. That is not a substitute for steps 6 through 9 on a real account.
+
 Live mode also needs:
 
 | Variable | Purpose |
@@ -89,6 +106,7 @@ Live mode also needs:
 | `FANVUE_PLAN_UUID` | Active pricing-plan id for the App Store deeplink. |
 | `FANVUE_WEBHOOK_SECRET` | Per-app signing secret from the Events tab. |
 | `FANVUE_SCOPES` | Optional override. Defaults to the four read scopes above. |
+| `FANVUE_VALIDATION_IMPORT` | `true` only on a test server. Allows import without an active Fanvue plan. Does not load demo data. |
 | `SUPPORT_EMAIL` | Public support address. Replace the example. |
 | `SECURITY_EMAIL` | Vulnerability contact. Replace the example. |
 | `APP_OWNER_NAME` | Legal name of the operator. Replace the placeholder. |
@@ -120,7 +138,7 @@ These were not settled by the documentation used for this build. The app fails c
 2. `GET /insights/earnings` records message purchases, but the insights guide does not show media UUIDs on those rows. This app treats per-chat `purchasedAt` plus `mediaUuids` as the attachment source. Is that the supported historical source?
 3. `creator.payment.succeeded` with `source: "media"` has no media ids here. It is recorded as unsupported rather than mapped to a chat attachment. Is that source ever a chat PPV?
 4. Message webhooks include `media_uuids` “including its preview” but do not name the preview uuid and do not include `purchasedAt`. The app will not infer either from the webhook.
-5. `GET /chats` is documented with `page` and `size`. `pagination.hasMore` is documented for messages. A short chat page ends the list. A message page without `hasMore` is incomplete. Is there a cursor for the chat list that should replace page numbers?
+5. Chat and media lists now follow the documented `/v1` cursor (`nextCursor`). Message history stays on the unversioned route because `/v1/chats/{userUuid}/messages` removes `markAsRead`, `beforeMessageUuid`, `startDate`, and `pagination.hasMore`, and its guide does not say whether broadcasts and unread behavior are unchanged. Is the v1 message route a safe replacement for a read-only backfill?
 6. No get-message-by-uuid route was used. `startDate` is exclusive and can miss a message sent before `paid_at`, so reconciliation walks per-chat history. Is there a supported single-message read?
 7. `creator.message.mass_sent` describes the send, not each fan. Per-fan broadcast purchases are taken from the per-chat copy’s `purchasedAt`. Confirm that the per-chat message uuid matches the mass-message uuid when a webhook has to be hydrated.
 8. `subscription/me` returns at most 100 managed creators and omits a creator whose subscription could not be read. This version connects the authorizing user from `GET /users/me` and does not switch agency creators. Should agency staff be in scope?

@@ -34,9 +34,18 @@ export interface MappedMessage {
   isBroadcast: boolean;
   /** True when this message is purchase evidence. False for unpaid sends. */
   purchased: boolean;
+  /** Message-level mediaType. Unknown types stay "other" so a video is not stored as a photo. */
+  attachmentKind: "image" | "video" | "other";
 }
 
 const BROADCAST_TYPES = new Set(["BROADCAST", "GHOST_PROMOTION"]);
+
+export function mediaKindFromType(mediaType: string | null | undefined): "image" | "video" | "other" {
+  const value = (mediaType ?? "").toLowerCase();
+  if (value.includes("image") || value === "photo") return "image";
+  if (value.includes("video")) return "video";
+  return "other";
+}
 
 export function priceCentsOf(message: FanvueChatMessage): number | null {
   const price = message.pricing?.USD?.price;
@@ -65,6 +74,7 @@ export function mapChatMessage(message: FanvueChatMessage): MappedMessage | null
     previewMediaId: preview,
     isBroadcast: BROADCAST_TYPES.has(message.type ?? ""),
     purchased: Boolean(purchasedAt),
+    attachmentKind: mediaKindFromType(message.mediaType),
   };
 }
 

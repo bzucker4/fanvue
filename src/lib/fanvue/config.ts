@@ -66,6 +66,15 @@ export function liveCredentialsReady(config: FanvueConfig): boolean {
   return Boolean(config.clientId && config.clientSecret && config.redirectUri && config.encryptionKey);
 }
 
+/**
+ * Explicit opt-in for a test creator account.
+ * Fanvue has no sandbox and review accounts must not be asked to pay.
+ * This flag never fills a live workspace with demo purchases.
+ */
+export function validationImportEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return clean(env.FANVUE_VALIDATION_IMPORT).toLowerCase() === "true";
+}
+
 export function assertLiveCredentials(config: FanvueConfig): void {
   if (!liveCredentialsReady(config)) {
     throw new IntegrationConfigError(

@@ -1,4 +1,12 @@
-import { mapChatMessage, nextMessageCursor, type FanvueChatMessage, type MappedMessage } from "../audit/map-message";
+import {
+  mapChatMessage,
+  mediaKindFromType,
+  nextMessageCursor,
+  type FanvueChatMessage,
+  type MappedMessage,
+} from "../audit/map-message";
+
+export { mediaKindFromType };
 import { FanvueApiError, FanvueClient } from "./client";
 
 /**
@@ -22,7 +30,7 @@ export interface ChatListItem {
 
 export interface ChatListPage {
   data?: ChatListItem[];
-  pagination?: { hasMore?: boolean };
+  nextCursor?: string | null;
 }
 
 export interface ImportDraft {
@@ -42,7 +50,7 @@ export interface ImportDraft {
 }
 
 const METHOD_NOTE =
-  "Purchase history is read per chat with GET /chats/{userUuid}/messages?markAsRead=false. That history includes broadcast messages. POST /chats/messages/batch is not used because Fanvue documents it as excluding mass messages.";
+  "Purchase history is read per chat with GET /chats/{userUuid}/messages?markAsRead=false. That unversioned history includes broadcast messages and is the path that still documents markAsRead and beforeMessageUuid. Chat and media lists use GET /v1/chats and GET /v1/media with nextCursor. POST /chats/messages/batch is not used because Fanvue documents it as excluding mass messages.";
 
 const UNSUPPORTED = [
   "Post purchases, tips, subscriptions, and non-photo attachments are recorded only as outside this photo audit.",
@@ -67,7 +75,12 @@ export async function importPurchaseHistory(client: FanvueClient): Promise<Impor
 
   let chats: ChatListItem[] = [];
   try {
-    chats = await listAllChats(client);
+    const listed = await listAllChats(client);
+    chats = listed.rows;
+    if (!listed.complete && listed.gap) {
+      draft.historyComplete = false;
+      draft.gaps.push(listed.gap);
+    }
   } catch (error) {
     draft.historyComplete = false;
     draft.gaps.push(error instanceof Error ? error.message : "Chat list failed.");
@@ -113,20 +126,9 @@ export async function importPurchaseHistory(client: FanvueClient): Promise<Impor
   return draft;
 }
 
-async function listAllChats(client: FanvueClient): Promise<ChatListItem[]> {
-  const chats: ChatListItem[] = [];
-  const size = 50;
-  for (let page = 1; page <= 200; page += 1) {
-    const body = await client.getJson<ChatListPage>(`/chats?page=${page}&size=${size}`);
-    const data = Array.isArray(body.data) ? body.data : [];
-    chats.push(...data);
-    if (body.pagination?.hasMore === false) break;
-    if (data.length < size) break;
-    if (page === 200) {
-      throw new Error("Chat list did not end before the page guard. Coverage is incomplete.");
-    }
-  }
-  return chats;
+async function listAllChats(client: FanvueClient): Promise<{ rows: ChatListItem[]; complete: boolean; gap?: string }> {
+  const walked = await walkCursor<ChatListItem>(client, "/v1/chats", 50, "Chat list");
+  return { rows: walked.rows, complete: walked.complete, gap: walked.gap };
 }
 
 async function walkChat(client: FanvueClient, fanUuid: string, draft: ImportDraft): Promise<FanvueChatMessage[]> {
@@ -171,45 +173,38 @@ export interface MediaMetadata {
  * https://api.fanvue.com/docs/tutorials/working-with-media
  */
 export async function listMediaMetadata(client: FanvueClient): Promise<{ items: MediaMetadata[]; complete: boolean; gap?: string }> {
-  const items: MediaMetadata[] = [];
-  const size = 50;
   try {
-    for (let page = 1; page <= 200; page += 1) {
-      const body = await client.getJson<{ data?: Array<Record<string, unknown>>; pagination?: { hasMore?: boolean } }>(
-        `/media?status=ready&page=${page}&size=${size}`,
-      );
-      const data = Array.isArray(body.data) ? body.data : [];
-      for (const row of data) {
-        if (typeof row.uuid !== "string") continue;
-        items.push({
-          uuid: row.uuid,
-          status: typeof row.status === "string" ? row.status : "ready",
-          mediaType: typeof row.mediaType === "string" ? row.mediaType : typeof row.media_type === "string" ? row.media_type : null,
-          name: typeof row.name === "string" ? row.name : typeof row.caption === "string" ? row.caption : null,
-        });
-      }
-      if (body.pagination?.hasMore === false) break;
-      if (data.length < size) break;
+    const walked = await walkCursor<Record<string, unknown>>(
+      client,
+      "/v1/media",
+      50,
+      "Media list",
+      new URLSearchParams({ status: "ready" }),
+    );
+    const items: MediaMetadata[] = [];
+    for (const row of walked.rows) {
+      if (typeof row.uuid !== "string") continue;
+      items.push({
+        uuid: row.uuid,
+        status: typeof row.status === "string" ? row.status : "ready",
+        mediaType: typeof row.mediaType === "string" ? row.mediaType : typeof row.media_type === "string" ? row.media_type : null,
+        name: typeof row.name === "string" ? row.name : typeof row.caption === "string" ? row.caption : null,
+      });
     }
-    return { items, complete: true };
+    return { items, complete: walked.complete, gap: walked.gap };
   } catch (error) {
     return {
-      items,
+      items: [],
       complete: false,
       gap: error instanceof Error ? error.message : "Media metadata import failed.",
     };
   }
 }
 
-export function mediaKindFromType(mediaType: string | null): "image" | "video" | "other" {
-  const value = (mediaType ?? "").toLowerCase();
-  if (value.includes("image") || value === "photo") return "image";
-  if (value.includes("video")) return "video";
-  return "other";
-}
-
 /**
- * Catch-up after downtime. `startDate` is exclusive and per chat.
+ * Publishes-after cursor. `startDate` is exclusive and filters on sent time, not purchase time.
+ * A fan can buy an older PPV after downtime, so purchase reconciliation walks the per-chat
+ * thread with beforeMessageUuid instead of trusting this window alone.
  * Broadcasts stay included because this still uses the per-chat endpoint.
  */
 export async function reconcileChatSince(
@@ -236,4 +231,38 @@ export async function reconcileChatSince(
     page += 1;
   }
   return messages;
+}
+
+async function walkCursor<T>(
+  client: FanvueClient,
+  path: string,
+  size: number,
+  label: string,
+  extra?: URLSearchParams,
+): Promise<{ rows: T[]; complete: boolean; gap?: string }> {
+  const rows: T[] = [];
+  let cursor: string | null = null;
+  const seen = new Set<string>();
+  for (let guard = 0; guard < 10000; guard += 1) {
+    const params = new URLSearchParams(extra);
+    params.set("size", String(size));
+    if (cursor) params.set("cursor", cursor);
+    const body = await client.getJson<{ data?: T[]; nextCursor?: string | null }>(`${path}?${params.toString()}`);
+    const data = Array.isArray(body.data) ? body.data : [];
+    rows.push(...data);
+    if (body.nextCursor === null) return { rows, complete: true };
+    if (typeof body.nextCursor !== "string" || body.nextCursor.length === 0) {
+      return {
+        rows,
+        complete: false,
+        gap: `${label} omitted nextCursor. The walk stopped instead of guessing another page.`,
+      };
+    }
+    if (seen.has(body.nextCursor)) {
+      return { rows, complete: false, gap: `${label} repeated a cursor. The walk stopped.` };
+    }
+    seen.add(body.nextCursor);
+    cursor = body.nextCursor;
+  }
+  return { rows, complete: false, gap: `${label} did not end before the page guard.` };
 }
