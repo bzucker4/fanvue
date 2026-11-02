@@ -1,5 +1,6 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle, EmptyState } from "@fanvue/ui";
 import { PageIntro, PhotoFace, StatusPill } from "@/components/chrome";
+import { CopyId } from "@/components/copy-id";
 import { DuplicateUploadFields } from "@/components/duplicate-upload-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -58,11 +59,8 @@ export default async function LibraryPage() {
                   <p className="typography-body-small-14px-regular text-content-secondary">
                     {edge.note ?? "Suggested only. This is not a confirmed content identity."}
                   </p>
-                  <p className="font-mono text-xs break-all text-content-tertiary">
-                    {left.mediaId}
-                    <br />
-                    {right.mediaId}
-                  </p>
+                  <CopyId label={left.label} value={left.mediaId} />
+                  <CopyId label={right.label} value={right.mediaId} />
                   <div className="flex flex-wrap gap-2">
                     <form action={setDuplicateStatus}>
                       <input type="hidden" name="left" value={left.id} />
@@ -149,7 +147,7 @@ export default async function LibraryPage() {
                     {upload.kind === "image" ? "Photo upload" : upload.kind}
                   </span>
                   <h3 className="typography-body-default-16px-semibold">{upload.label}</h3>
-                  <p className="font-mono text-xs break-all text-content-tertiary">{upload.mediaId}</p>
+                  <CopyId label="Media" value={upload.mediaId} />
                   {upload.kind !== "image" ? <StatusPill status="incomplete_or_unsupported_history" label="Outside photo audit" /> : null}
                 </div>
               </article>
@@ -182,7 +180,7 @@ function EdgeRow({
           {left.label} · {right.label}
         </strong>
         <Badge variant={edge.status === "confirmed" ? "brand" : "default"} leftDot={false}>
-          {edge.status}
+          {edge.status === "confirmed" ? "Confirmed link" : edge.status === "reversed" ? "Reversed" : "Rejected"}
         </Badge>
       </div>
       <form action={setDuplicateStatus}>

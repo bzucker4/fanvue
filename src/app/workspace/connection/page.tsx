@@ -5,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
-  ProgressBar,
   Table,
   TableBody,
   TableCard,
@@ -17,6 +16,7 @@ import {
   TableScrollArea,
 } from "@fanvue/ui";
 import { PageIntro, PrimaryLink, TextLink } from "@/components/chrome";
+import { CoverageStatus } from "@/components/coverage-status";
 import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
@@ -97,26 +97,23 @@ export default async function ConnectionPage({
         <Alert variant="error">Demo mode does not call Fanvue and cannot run a live import.</Alert>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2" aria-label="Import coverage">
-        <ProgressBar
-          variant="mono"
-          value={state?.historyComplete ? 100 : 0}
-          title="Chat history"
-          showCompletion
-          helperLeft={state?.historyComplete ? "Complete" : "Incomplete"}
-          ariaLabel="Chat history coverage"
-          ariaValueText={state?.historyComplete ? "Complete" : "Incomplete"}
-        />
-        <ProgressBar
-          variant="mono"
-          value={state?.broadcastsIncluded ? 100 : 0}
-          title="Broadcasts"
-          showCompletion
-          helperLeft={state?.broadcastsIncluded ? "Included" : "Not included"}
-          ariaLabel="Broadcast coverage"
-          ariaValueText={state?.broadcastsIncluded ? "Included" : "Not included"}
-        />
-      </section>
+      <Card hierarchy="primary" type="header-only">
+        <CardHeader>
+          <CardTitle>What was checked</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CoverageStatus
+            mode={workspace.mode}
+            status={state?.status ?? null}
+            historyComplete={state?.historyComplete === true}
+            broadcastsIncluded={state?.broadcastsIncluded === true}
+            chatsDiscovered={state?.chatsDiscovered ?? 0}
+            chatsImported={state?.chatsImported ?? 0}
+            messagesScanned={state?.messagesScanned ?? 0}
+            synchronizedAtLabel={state?.lastSynchronizedAt ? formatWhen(state.lastSynchronizedAt.toISOString()) : null}
+          />
+        </CardContent>
+      </Card>
       <div className="grid gap-3 sm:grid-cols-2">
         <Card hierarchy="secondary" type="container">
           <CardContent className="flex flex-col gap-1 p-4">

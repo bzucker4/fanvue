@@ -1,23 +1,20 @@
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Alert,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   EmptyState,
-  ProgressBar,
-  Table,
-  TableBody,
-  TableCard,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableMobileRow,
-  TableRow,
-  TableScrollArea,
 } from "@fanvue/ui";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { PageIntro, PhotoFace, SecondaryLink, StatusPill, TextLink } from "@/components/chrome";
+import { CopyId } from "@/components/copy-id";
+import { CoverageStatus } from "@/components/coverage-status";
 import { BundleSteps, WorkspaceShell } from "@/components/workspace-shell";
 import { coverageForAudit } from "@/lib/live/import-failure";
 import { runWorkspaceAudit } from "@/lib/audit/load";
@@ -99,24 +96,20 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
           <CardTitle>Audit coverage</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <ProgressBar
-            variant="mono"
-            value={visibleCoverage.historyComplete ? 100 : 0}
-            title="History"
-            showCompletion
-            helperLeft={visibleCoverage.historyComplete ? "Marked complete for the imported chats" : "Incomplete"}
-            helperRight={visibleCoverage.broadcastsIncluded ? "Broadcasts included" : "Broadcasts not included"}
-            ariaLabel="Audit history coverage"
-            ariaValueText={
-              visibleCoverage.historyComplete
-                ? "History is marked complete for the imported chats"
-                : "History is incomplete"
+          <CoverageStatus
+            mode={workspace.mode}
+            status={workspace.importState?.status ?? null}
+            historyComplete={visibleCoverage.historyComplete}
+            broadcastsIncluded={visibleCoverage.broadcastsIncluded}
+            chatsDiscovered={workspace.importState?.chatsDiscovered ?? 0}
+            chatsImported={workspace.importState?.chatsImported ?? 0}
+            messagesScanned={workspace.importState?.messagesScanned ?? 0}
+            synchronizedAtLabel={
+              workspace.importState?.lastSynchronizedAt
+                ? formatWhen(workspace.importState.lastSynchronizedAt.toISOString())
+                : null
             }
           />
-          <p className="typography-body-default-16px-regular">
-            History {visibleCoverage.historyComplete ? "is marked complete for the imported chats" : "is incomplete"}.
-            Broadcast messages are {visibleCoverage.broadcastsIncluded ? "included, because per-chat history was used" : "not included"}.
-          </p>
           {workspace.importState?.billingMode === "validation" ? (
             <Alert variant="success">
               This audit uses a validation import. It is not covered by an active Fanvue plan, and it is not the sample
@@ -147,10 +140,12 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
                 liveUploadId={!upload?.sampleAsset && workspace.mode === "live" ? item.uploadId : null}
               />
               <div className="flex min-w-0 flex-col gap-2">
-                <StatusPill status={item.status} label={STATUS_LABEL[item.status] ?? item.status} />
-                <h2 className="typography-header-heading-xs">{item.label}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="typography-header-heading-xs">{item.label}</h2>
+                  <StatusPill status={item.status} label={STATUS_LABEL[item.status] ?? item.status} />
+                </div>
                 <p className="typography-body-default-16px-regular">{item.summary}</p>
-                <p className="font-mono text-xs break-all text-content-tertiary">Media {item.mediaId}</p>
+                <CopyId label="Media" value={item.mediaId} />
                 <Evidence item={item} />
               </div>
             </article>
@@ -176,92 +171,62 @@ function Evidence({ item }: { item: ItemAudit }) {
   return (
     <div className="flex flex-col gap-3">
       {item.purchaseEvidence.length > 0 ? (
-        <>
-          <Alert variant="neutral">
-            Listed price is pricing.USD.price, not the amount paid. The charged amount is not imported from this message.
-          </Alert>
-          <div className="flex flex-col gap-3 sm:hidden">
-            {item.purchaseEvidence.map((evidence) => (
-              <TableMobileRow
-                key={evidence.purchaseId}
-                wrap
-                badge={<StatusPill status="confirmed_purchase_overlap" label="Purchase" />}
-                title={`${evidence.fanName} purchased ${messageTypeLabel(evidence.messageType).toLowerCase()}`}
-                description={purchaseDescription(evidence)}
-              />
-            ))}
-          </div>
-          <TableCard className="hidden sm:block">
-            <TableScrollArea>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fan</TableHead>
-                    <TableHead>When</TableHead>
-                    <TableHead>Listed price</TableHead>
-                    <TableHead>Message</TableHead>
-                    <TableHead>Match</TableHead>
-                    <TableHead>Preview</TableHead>
-                    <TableHead>Reversal</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {item.purchaseEvidence.map((evidence) => (
-                    <TableRow key={evidence.purchaseId}>
-                      <TableCell>{evidence.fanName}</TableCell>
-                      <TableCell>{formatWhen(evidence.purchasedAt)}</TableCell>
-                      <TableCell>
-                        Listed {formatMoney(evidence.priceCents, evidence.currency)}
-                        {evidence.invoiceId ? ` · ${evidence.invoiceId}` : ""}
-                      </TableCell>
-                      <TableCell>
-                        {messageTypeLabel(evidence.messageType)}
-                        <span className="mt-1 block font-mono text-xs break-all text-content-tertiary">{evidence.messageId}</span>
-                      </TableCell>
-                      <TableCell>
-                        {evidence.matchedBecause === "same_upload"
-                          ? "This upload is a paid attachment on that message."
-                          : "A confirmed duplicate of this upload is a paid attachment on that message."}{" "}
-                        Paid attachments: {evidence.paidMedia.map((media) => media.label).join(", ")}
-                      </TableCell>
-                      <TableCell>
-                        {evidence.preview ? `${evidence.preview.label} (${evidence.preview.mediaId})` : "None"}. Previews are
-                        not purchase matches.
-                      </TableCell>
-                      <TableCell>
-                        {evidence.reversals.length === 0
-                          ? "None"
-                          : evidence.reversals
-                              .map(
-                                (reversal) =>
-                                  `A ${reversal.kind.replaceAll("_", " ")} is recorded separately${
-                                    reversal.amountCents !== null ? ` (${formatMoney(reversal.amountCents)})` : ""
-                                  }. It does not remove this purchase evidence.`,
-                              )
-                              .join(" ")}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableScrollArea>
-          </TableCard>
-        </>
+        <Alert variant="neutral">
+          Listed price is pricing.USD.price, not the amount paid. The charged amount is not imported from this message.
+        </Alert>
       ) : null}
+      {item.purchaseEvidence.map((evidence) => (
+        <Card key={evidence.purchaseId} hierarchy="secondary" type="container">
+          <CardContent className="flex flex-col gap-1 p-3">
+            <StatusPill status="confirmed_purchase_overlap" label="Purchase" />
+            <p className="typography-body-default-16px-semibold">
+              {evidence.fanName} purchased {messageTypeLabel(evidence.messageType).toLowerCase()}
+            </p>
+            <p className="typography-body-small-14px-regular">
+              {formatWhen(evidence.purchasedAt)}. Listed {formatMoney(evidence.priceCents, evidence.currency)}.
+            </p>
+            <p className="typography-body-small-14px-regular">
+              {evidence.matchedBecause === "same_upload"
+                ? "This upload is a paid attachment on that message."
+                : "A confirmed duplicate of this upload is a paid attachment on that message."}{" "}
+              Paid attachments: {evidence.paidMedia.map((media) => media.label).join(", ") || "None recorded"}.
+            </p>
+            <p className="typography-body-small-14px-regular text-content-secondary">
+              Free preview: {evidence.preview ? evidence.preview.label : "None"}. Previews are not purchase matches.
+            </p>
+            <p className="typography-body-small-14px-regular text-content-secondary">{reversalSummary(evidence.reversals)}</p>
+            <TechnicalDetails title="Purchase identifiers">
+              <CopyId label="Message" value={evidence.messageId} />
+              {evidence.invoiceId ? <CopyId label="Invoice" value={evidence.invoiceId} /> : null}
+              {evidence.paidMedia.map((media) => (
+                <CopyId key={media.mediaId} label={media.label} value={media.mediaId} />
+              ))}
+              {evidence.preview ? <CopyId label={`${evidence.preview.label} preview`} value={evidence.preview.mediaId} /> : null}
+            </TechnicalDetails>
+          </CardContent>
+        </Card>
+      ))}
       {item.suggestionEvidence.map((suggestion) => (
         <Card key={suggestion.edgeId} hierarchy="secondary" type="container">
-          <CardContent className="flex flex-col gap-2 p-4">
-            <StatusPill status="possible_duplicate_requiring_review" label={`Suggestion only: ${suggestion.suggestedLabel}`} />
+          <CardContent className="flex flex-col gap-1 p-3">
+            <StatusPill status="possible_duplicate_requiring_review" label="Suggestion only" />
+            <p className="typography-body-default-16px-semibold">{suggestion.suggestedLabel}</p>
             <p className="typography-body-small-14px-regular text-content-secondary">
-              Media {suggestion.suggestedMediaId}. This link is not confirmed, so it is not a purchase overlap.
+              This link is not confirmed, so it is not a purchase overlap.
             </p>
             <TextLink href="/workspace/library#review">Open the review queue</TextLink>
             {suggestion.purchases.map((purchase) => (
               <p key={purchase.purchaseId} className="typography-body-small-14px-regular">
                 {purchase.fanName} purchased {purchase.paidMedia.map((media) => media.label).join(", ")} on{" "}
-                {formatWhen(purchase.purchasedAt)}. Message {purchase.messageId}.
+                {formatWhen(purchase.purchasedAt)}.
               </p>
             ))}
+            <TechnicalDetails title="Suggested media id">
+              <CopyId label="Suggested media" value={suggestion.suggestedMediaId} />
+              {suggestion.purchases.map((purchase) => (
+                <CopyId key={purchase.purchaseId} label={`${purchase.fanName} message`} value={purchase.messageId} />
+              ))}
+            </TechnicalDetails>
           </CardContent>
         </Card>
       ))}
@@ -281,26 +246,26 @@ function Evidence({ item }: { item: ItemAudit }) {
   );
 }
 
-function purchaseDescription(evidence: ItemAudit["purchaseEvidence"][number]) {
-  return [
-    `${formatWhen(evidence.purchasedAt)} · Listed ${formatMoney(evidence.priceCents, evidence.currency)}${evidence.invoiceId ? ` · ${evidence.invoiceId}` : ""}`,
-    `Message ${evidence.messageId}`,
-    evidence.matchedBecause === "same_upload"
-      ? "This upload is a paid attachment on that message."
-      : "A confirmed duplicate of this upload is a paid attachment on that message.",
-    `Paid attachments: ${evidence.paidMedia.map((media) => media.label).join(", ")}`,
-    `Free preview: ${evidence.preview ? `${evidence.preview.label} (${evidence.preview.mediaId})` : "None"}. Previews are not purchase matches.`,
-    evidence.reversals.length === 0
-      ? ""
-      : evidence.reversals
-          .map(
-            (reversal) =>
-              `A ${reversal.kind.replaceAll("_", " ")} is recorded separately${
-                reversal.amountCents !== null ? ` (${formatMoney(reversal.amountCents)})` : ""
-              }. It does not remove this purchase evidence.`,
-          )
-          .join(" "),
-  ]
-    .filter(Boolean)
+function TechnicalDetails({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Accordion type="single" collapsible>
+      <AccordionItem value={title}>
+        <AccordionTrigger>{title}</AccordionTrigger>
+        <AccordionContent>
+          <div className="grid gap-2 min-[520px]:grid-cols-2">{children}</div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+
+function reversalSummary(reversals: ItemAudit["purchaseEvidence"][number]["reversals"]) {
+  if (reversals.length === 0) return "No refund or dispute on this purchase.";
+  return reversals
+    .map((reversal) => {
+      const label = reversal.kind.replaceAll("_", " ");
+      const amount = reversal.amountCents !== null ? ` for ${formatMoney(reversal.amountCents)}` : "";
+      return `A ${label} is recorded separately${amount}. It does not remove this purchase evidence.`;
+    })
     .join(" ");
 }

@@ -6,6 +6,7 @@ import { canonicalPair } from "@/lib/audit/duplicates";
 import { prisma } from "@/lib/db";
 import { createDemoWorkspace } from "@/lib/demo/seed";
 import { readFanvueConfig } from "@/lib/fanvue/config";
+import { erasureConfirmed } from "@/lib/deletion";
 import { describeImportFailure } from "@/lib/live/import-failure";
 import { runLiveImport } from "@/lib/live/run-import";
 import { clearSessionCookie, writeSessionCookie } from "@/lib/session-cookie";
@@ -146,25 +147,35 @@ export async function importLiveHistory() {
   redirect(`/workspace/connection?${query}`);
 }
 
-export async function submitDeletion(formData: FormData) {
+export async function requestDeletion(formData: FormData) {
   const workspace = await workspaceOrRedirect();
   const contact = String(formData.get("contact") ?? "").trim().slice(0, 200);
   const detail = String(formData.get("detail") ?? "").trim().slice(0, 2000);
-  const eraseNow = formData.get("eraseNow") === "yes";
   if (!contact) return;
   await prisma.deletionRequest.create({
     data: {
       workspaceId: workspace.id,
       contact,
       detail: detail || "Creator requested deletion of Bundle Audit data.",
-      status: eraseNow ? "erased" : "received",
+      status: "received",
     },
   });
-  if (eraseNow) {
-    await prisma.workspace.delete({ where: { id: workspace.id } });
-    await clearSessionCookie();
-    redirect("/?deleted=1");
-  }
   revalidatePath("/workspace/settings");
   redirect("/workspace/settings?deletion=received");
+}
+
+export async function eraseWorkspace(formData: FormData) {
+  const workspace = await workspaceOrRedirect();
+  if (!erasureConfirmed(formData.get("confirm"))) return;
+  await prisma.deletionRequest.create({
+    data: {
+      workspaceId: workspace.id,
+      contact: "in-app erasure",
+      detail: "Creator confirmed irreversible erasure of this workspace.",
+      status: "erased",
+    },
+  });
+  await prisma.workspace.delete({ where: { id: workspace.id } });
+  await clearSessionCookie();
+  redirect("/?deleted=1");
 }

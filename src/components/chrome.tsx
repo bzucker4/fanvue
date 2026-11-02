@@ -1,9 +1,9 @@
 import {
   Alert,
-  Badge,
   Button,
-  type BadgeVariant,
   Link as FanvueLink,
+  Pill,
+  type PillVariant,
 } from "@fanvue/ui";
 import NextLink from "next/link";
 import { APP_STORE_HOME, appStoreListingUrl, readFanvueConfig } from "@/lib/fanvue/config";
@@ -89,18 +89,18 @@ export function DraftBanner() {
   );
 }
 
-const STATUS_BADGE: Record<string, BadgeVariant> = {
-  confirmed_purchase_overlap: "errorColour",
-  possible_duplicate_requiring_review: "warningColour",
-  no_known_purchase_overlap: "successColour",
-  incomplete_or_unsupported_history: "infoColour",
+const STATUS_PILL: Record<string, PillVariant> = {
+  confirmed_purchase_overlap: "red",
+  possible_duplicate_requiring_review: "gold",
+  no_known_purchase_overlap: "green",
+  incomplete_or_unsupported_history: "blue",
 };
 
 export function StatusPill({ status, label }: { status: string; label: string }) {
   return (
-    <Badge variant={STATUS_BADGE[status] ?? "default"} leftDot>
+    <Pill className="text-content-primary" variant={STATUS_PILL[status] ?? "grey"}>
       {label}
-    </Badge>
+    </Pill>
   );
 }
 

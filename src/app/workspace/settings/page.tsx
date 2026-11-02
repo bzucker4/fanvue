@@ -1,12 +1,12 @@
-import { Alert, Card, CardContent, CardHeader, CardTitle, TextArea, TextField } from "@fanvue/ui";
+import { Alert, Card, CardContent, CardHeader, CardTitle } from "@fanvue/ui";
 import { PageIntro, TextLink } from "@/components/chrome";
-import { EraseNowField } from "@/components/erase-now-field";
+import { EraseWorkspaceDialog, RequestDeletionForm } from "@/components/workspace-deletion";
 import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { REQUIRED_SCOPES } from "@/lib/fanvue/config";
 import { ownerContact } from "@/lib/site";
 import { requireWorkspace } from "@/lib/workspace-gate";
-import { leaveWorkspace, submitDeletion } from "../actions";
+import { leaveWorkspace } from "../actions";
 
 export const metadata = { title: "Settings" };
 
@@ -73,25 +73,29 @@ export default async function SettingsPage({
           </CardContent>
         </Card>
       </section>
-      <Card hierarchy="primary" type="header-only">
-        <CardHeader>
-          <CardTitle>Delete creator data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={submitDeletion} className="flex max-w-xl flex-col gap-4">
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card hierarchy="primary" type="header-only">
+          <CardHeader>
+            <CardTitle>Request deletion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RequestDeletionForm />
+          </CardContent>
+        </Card>
+        <Card hierarchy="primary" type="header-only">
+          <CardHeader>
+            <CardTitle>Erase workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-3">
             <p className="typography-body-default-16px-regular">
-              Erasing now removes this workspace, imported purchases, duplicate decisions, bundles, and encrypted Fanvue
-              tokens. It does not delete anything inside Fanvue.
+              Erasure is off until you open the confirmation and acknowledge it. It removes this workspace, imported
+              purchases, duplicate decisions, bundles, and encrypted Fanvue tokens. It does not delete anything inside
+              Fanvue.
             </p>
-            <TextField name="contact" type="email" label="Contact email" required placeholder="you@example.com" fullWidth />
-            <TextArea name="detail" label="Note" minRows={4} placeholder="Optional context for the operator" fullWidth />
-            <EraseNowField />
-            <SubmitButton variant="destructive" size="40">
-              Submit deletion request
-            </SubmitButton>
-          </form>
-        </CardContent>
-      </Card>
+            <EraseWorkspaceDialog />
+          </CardContent>
+        </Card>
+      </section>
     </WorkspaceShell>
   );
 }

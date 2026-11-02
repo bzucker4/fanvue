@@ -1,6 +1,7 @@
 import { EmptyState } from "@fanvue/ui";
 import { notFound } from "next/navigation";
 import { PageIntro, PhotoFace, StatusPill } from "@/components/chrome";
+import { CopyId } from "@/components/copy-id";
 import { SubmitButton } from "@/components/submit-button";
 import { BundleSteps, WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
@@ -45,10 +46,15 @@ export default async function BundleBuilderPage({ params }: { params: Promise<{ 
                 key={upload.id}
                 className={`flex flex-col overflow-hidden rounded-md border bg-surface-primary ${on ? "border-brand-primary-default ring-2 ring-brand-primary-default" : "border-border-primary"}`}
               >
-                <PhotoFace src={upload.sampleAsset} label={upload.label} liveUploadId={!upload.sampleAsset && workspace.mode === "live" ? upload.id : null} />
+                <PhotoFace
+                  className="aspect-[4/3] w-full rounded-sm bg-surface-secondary object-cover"
+                  src={upload.sampleAsset}
+                  label={upload.label}
+                  liveUploadId={!upload.sampleAsset && workspace.mode === "live" ? upload.id : null}
+                />
                 <div className="flex flex-col gap-2 p-3">
                   <h2 className="typography-body-default-16px-semibold">{upload.label}</h2>
-                  <p className="font-mono text-xs break-all text-content-tertiary">{upload.mediaId}</p>
+                  <CopyId label="Media" value={upload.mediaId} />
                   {image ? (
                     <form action={toggleBundlePhoto}>
                       <input type="hidden" name="bundleId" value={bundle.id} />

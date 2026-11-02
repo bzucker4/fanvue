@@ -42,17 +42,19 @@ export function WorkspaceShell({
           </nav>
         </aside>
         <div className="flex min-w-0 flex-col gap-4">
-          {mode === "demo" ? (
-            <Alert variant="warning" title="Demo mode">
-              These are harmless sample still lifes in a workspace of their own. They are not your Fanvue account, and
-              live results are never filled in with this sample.
-            </Alert>
-          ) : (
-            <Alert variant="info" title="Live workspace">
-              Purchase evidence comes only from your Fanvue connection. If a sync has not finished, the audit says the
-              history is incomplete.
-            </Alert>
-          )}
+          <div className="sticky top-4 z-20">
+            {mode === "demo" ? (
+              <Alert variant="warning" title="Demo mode">
+                These are harmless sample still lifes in a workspace of their own. They are not your Fanvue account, and
+                live results are never filled in with this sample.
+              </Alert>
+            ) : (
+              <Alert variant="info" title="Live workspace">
+                Purchase evidence comes only from your Fanvue connection. If a sync has not finished, the audit says the
+                history is incomplete.
+              </Alert>
+            )}
+          </div>
           {children}
         </div>
       </div>
