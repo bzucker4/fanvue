@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@fanvue/ui";
-import { DraftBanner, PageIntro, SiteFooter, SiteHeader } from "@/components/chrome";
+import { PageIntro, SiteFooter, SiteHeader } from "@/components/chrome";
 import { ownerContact } from "@/lib/site";
 
 export const metadata = { title: "Terms" };
@@ -10,10 +10,9 @@ export default function TermsPage() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 pb-10">
-        <DraftBanner />
         <Card hierarchy="primary" type="container">
           <CardContent className="flex flex-col gap-4 p-6">
-            <PageIntro kicker="Terms draft" title="Terms of Service">
+            <PageIntro kicker="Terms" title="Terms of Service">
               <p className="typography-body-small-14px-regular text-content-secondary">
                 Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: November 2, 2026.
               </p>
@@ -53,7 +52,7 @@ export default function TermsPage() {
             <p className="typography-body-default-16px-regular">
               To the extent the law allows, the operator is not liable for indirect, incidental, or consequential losses,
               or for lost revenue or data, and total liability for any claim is limited to the fees you paid for the app in the
-              12 months before the claim. [Counsel to confirm wording and local limits.]
+              12 months before the claim. Some places do not allow these limits, so they apply only as far as the law permits.
             </p>
             <h2 className="typography-header-heading-xs">Termination and changes</h2>
             <p className="typography-body-default-16px-regular">
@@ -62,7 +61,7 @@ export default function TermsPage() {
               Effective date: November 2, 2026.
             </p>
             <h2 className="typography-header-heading-xs">Governing law</h2>
-            <p className="typography-body-default-16px-regular">These terms are governed by the laws of the State of New York, without regard to conflict-of-law rules. Disputes will be brought in the state or federal courts located in Monroe County, New York. [Counsel to confirm.] Questions: {contact.supportEmail}.</p>
+            <p className="typography-body-default-16px-regular">These terms are governed by the laws of the State of New York, without regard to conflict-of-law rules. Disputes will be brought in the state or federal courts located in Monroe County, New York. Questions: {contact.supportEmail}.</p>
           </CardContent>
         </Card>
       </main>
