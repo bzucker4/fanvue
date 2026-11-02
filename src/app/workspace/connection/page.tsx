@@ -16,13 +16,14 @@ import {
   TableRow,
   TableScrollArea,
 } from "@fanvue/ui";
-import { PageIntro, PrimaryLink } from "@/components/chrome";
+import { PageIntro, PrimaryLink, TextLink } from "@/components/chrome";
 import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
 import { formatMoney, formatWhen, messageTypeLabel } from "@/lib/format";
 import { readFanvueConfig, validationBypassForCreator } from "@/lib/fanvue/config";
 import { validationBlockMessage } from "@/lib/live/import-gate";
+import { purchaseListState } from "@/lib/live/import-failure";
 import { readEntitlement } from "@/lib/fanvue/entitlement";
 import { authorizedClient } from "@/lib/live/tokens";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -78,8 +79,20 @@ export default async function ConnectionPage({
         ) : null}
       </PageIntro>
 
-      {params.imported === "1" ? <Alert variant="success">Import finished. Coverage is shown below.</Alert> : null}
-      {params.error === "import" && state?.lastError ? <Alert variant="error">{state.lastError}</Alert> : null}
+      {params.imported === "1" && state?.status === "ready" ? (
+        <Alert variant="success">Import finished. Coverage below is for that synchronization.</Alert>
+      ) : null}
+      {state?.status === "incomplete" ? (
+        <Alert variant="warning" title="Import is incomplete" action={<a href="/support">Contact support</a>}>
+          At least one chat was not fully read. Missing purchases are not treated as “no purchase.” Try the import again,
+          or reconnect if Fanvue refused access.
+        </Alert>
+      ) : null}
+      {state?.status === "error" && state.lastError ? (
+        <Alert variant="error" title="Import failed" action={recoveryLink(state.lastError)}>
+          {state.lastError} This is not an empty purchase history and it is not a completed audit.
+        </Alert>
+      ) : null}
       {params.error === "demo-import" ? (
         <Alert variant="error">Demo mode does not call Fanvue and cannot run a live import.</Alert>
       ) : null}
@@ -107,7 +120,7 @@ export default async function ConnectionPage({
       <div className="grid gap-3 sm:grid-cols-2">
         <Card hierarchy="secondary" type="container">
           <CardContent className="flex flex-col gap-1 p-4">
-            <p className="typography-description-12px-semibold text-content-secondary uppercase">Last synchronization</p>
+            <p className="typography-description-12px-semibold text-content-secondary uppercase">Last successful synchronization</p>
             <p className="typography-body-default-16px-semibold">{formatWhen(state?.lastSynchronizedAt?.toISOString() ?? null)}</p>
           </CardContent>
         </Card>
@@ -171,17 +184,7 @@ export default async function ConnectionPage({
           not on this record.
         </Alert>
         {purchases.length === 0 ? (
-          <EmptyState
-            variant="centered"
-            titleSize="sm"
-            mediaSize="xs"
-            title="No purchased PPV attachments yet"
-            description={
-              workspace.mode === "live"
-                ? "Import history from the connected account. An empty live workspace is not filled with the sample story."
-                : "The sample workspace should already contain Jordan Hale’s purchases. Reload the demo if this stays empty."
-            }
-          />
+          <PurchaseEmpty mode={workspace.mode} state={state} />
         ) : (
           <PurchaseTable purchases={purchases} />
         )}
@@ -328,7 +331,7 @@ function EntitlementNote({
         variant="error"
         action={
           entitlement.state === "inactive" && entitlement.checkoutHref ? (
-            <a href={entitlement.checkoutHref}>The Fanvue plan deeplink stays available.</a>
+            <a href={entitlement.checkoutHref}>View this plan on Fanvue</a>
           ) : undefined
         }
       >
@@ -340,13 +343,91 @@ function EntitlementNote({
     return (
       <Alert
         variant="error"
-        action={entitlement.checkoutHref ? <a href={entitlement.checkoutHref}>Open the plan on the Fanvue App Store</a> : undefined}
+        action={entitlement.checkoutHref ? <a href={entitlement.checkoutHref}>View price and limits on Fanvue</a> : undefined}
       >
         {entitlement.message}
       </Alert>
     );
   }
-  return <Alert variant="error">{entitlement.message}</Alert>;
+  return (
+    <Alert variant="error" title="Fanvue could not be reached" action={<a href="/connect">Reconnect Fanvue</a>}>
+      {entitlement.message} The sample workspace was not opened in its place.{" "}
+      <TextLink href="/support">Contact support</TextLink> if this continues.
+    </Alert>
+  );
+}
+
+function recoveryLink(message: string) {
+  if (/reconnect/i.test(message)) return <a href="/connect">Reconnect Fanvue</a>;
+  return <a href="/support">Contact support</a>;
+}
+
+function PurchaseEmpty({
+  mode,
+  state,
+}: {
+  mode: string;
+  state: { status: string; lastSynchronizedAt: Date | null } | null;
+}) {
+  const list = purchaseListState({
+    status: state?.status,
+    purchaseCount: 0,
+    lastSynchronizedAt: state?.lastSynchronizedAt,
+  });
+  if (mode !== "live") {
+    return (
+      <EmptyState
+        variant="centered"
+        titleSize="sm"
+        mediaSize="xs"
+        title="Sample purchases are missing"
+        description="Leave this workspace and open the labeled sample again. Live Fanvue data is not filled in here."
+      />
+    );
+  }
+  if (list === "failed") {
+    return (
+      <EmptyState
+        variant="centered"
+        titleSize="sm"
+        mediaSize="xs"
+        title="The import failed"
+        description="No purchase list was produced. This is not a finding that the account has no purchases, and the sample story was not used."
+        primaryAction={<a href="/support">Contact support</a>}
+      />
+    );
+  }
+  if (list === "incomplete") {
+    return (
+      <EmptyState
+        variant="centered"
+        titleSize="sm"
+        mediaSize="xs"
+        title="Import stopped early"
+        description="No purchased PPV photo attachments were stored because the read did not finish. That is not an empty purchase history."
+      />
+    );
+  }
+  if (list === "not_imported") {
+    return (
+      <EmptyState
+        variant="centered"
+        titleSize="sm"
+        mediaSize="xs"
+        title="Purchase history has not been imported"
+        description="Import from the connected Fanvue account. Until that finishes, this screen is not an audit and it is not filled with the sample."
+      />
+    );
+  }
+  return (
+    <EmptyState
+      variant="centered"
+      titleSize="sm"
+      mediaSize="xs"
+      title="No purchased PPV photo attachments were stored"
+      description="The last completed import found none. This covers purchased PPV chat photos only. It does not mean a fan has never seen a photo."
+    />
+  );
 }
 
 async function loadEntitlement(workspaceId: string, creatorUuid: string | null) {

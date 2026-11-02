@@ -12,6 +12,7 @@ const ERRORS: Record<string, string> = {
   callback: "The return from Fanvue was incomplete.",
   scopes: "The Fanvue account did not grant every read scope this audit needs. Reconnect and accept read:self, read:chat, read:media, and read:creator.",
   exchange: "The Fanvue token exchange failed. Check the client secret and redirect URI, then try again.",
+  expired: "This workspace session expired. Reconnect to Fanvue, or open the labeled sample again. The sample is not used in place of a live account.",
 };
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -30,7 +31,11 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
             OAuth stays on Fanvue. Bundle Audit never asks for a Fanvue password.
           </p>
         </PageIntro>
-        {error ? <Alert variant="error">{error}</Alert> : null}
+        {error ? (
+          <Alert variant="error" action={<a href="/support">Contact support</a>}>
+            {error}
+          </Alert>
+        ) : null}
         <section className="grid gap-4 lg:grid-cols-2">
           <Card hierarchy="primary" type="header-only">
             <CardHeader>
@@ -67,9 +72,9 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
                 </Button>
               )}
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Paid live import uses a Fanvue plan. There is no external checkout. In development or test,
-                FANVUE_VALIDATION_IMPORT=true imports only the Fanvue user ids listed in FANVUE_VALIDATION_CREATOR_IDS.
-                Production ignores that flag. It never loads the sample workspace.
+                Live import and live audit require an active Fanvue plan. Fanvue shows the price, limits, and taxes
+                before payment. This app does not publish a price and does not add its own checkout. A failed connection
+                stays on this screen. It does not open the sample workspace.
               </p>
             </CardContent>
           </Card>

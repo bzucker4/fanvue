@@ -6,6 +6,7 @@ import { canonicalPair } from "@/lib/audit/duplicates";
 import { prisma } from "@/lib/db";
 import { createDemoWorkspace } from "@/lib/demo/seed";
 import { readFanvueConfig } from "@/lib/fanvue/config";
+import { describeImportFailure } from "@/lib/live/import-failure";
 import { runLiveImport } from "@/lib/live/run-import";
 import { clearSessionCookie, writeSessionCookie } from "@/lib/session-cookie";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -113,10 +114,12 @@ export async function importLiveHistory() {
     redirect("/workspace/connection?error=demo-import");
   }
   let message = "";
+  let outcome: "ready" | "incomplete" | "error" = "error";
   try {
-    await runLiveImport(prisma, workspace.id);
+    outcome = await runLiveImport(prisma, workspace.id);
   } catch (error) {
-    message = error instanceof Error ? error.message : "Import failed.";
+    message = describeImportFailure(error);
+    outcome = "error";
     await prisma.importState.upsert({
       where: { workspaceId: workspace.id },
       create: {
@@ -126,14 +129,21 @@ export async function importLiveHistory() {
         broadcastsIncluded: false,
         gaps: [message],
         unsupported: [],
-        methodNote: "Import did not finish. Demo data was not substituted.",
+        methodNote: "The latest import failed. Earlier purchases, if any, were kept. Demo data was not substituted.",
         lastError: message,
       },
-      update: { status: "error", lastError: message },
+      update: {
+        status: "error",
+        lastError: message,
+        historyComplete: false,
+        broadcastsIncluded: false,
+        methodNote: "The latest import failed. Earlier purchases, if any, were kept. Demo data was not substituted.",
+      },
     });
   }
   revalidatePath("/workspace/connection");
-  redirect(message ? "/workspace/connection?error=import" : "/workspace/connection?imported=1");
+  const query = outcome === "ready" ? "imported=1" : outcome === "incomplete" ? "imported=partial" : "error=import";
+  redirect(`/workspace/connection?${query}`);
 }
 
 export async function submitDeletion(formData: FormData) {

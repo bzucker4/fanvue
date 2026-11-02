@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { coverageForAudit } from "../live/import-failure";
 import type { AuditRequest, AuditStatus } from "./types";
 import { auditBundle } from "./engine";
 
@@ -94,8 +95,7 @@ export async function loadAuditRequest(
     })),
     coverage: {
       creatorId: workspace.id,
-      historyComplete: coverage?.historyComplete ?? false,
-      broadcastsIncluded: coverage?.broadcastsIncluded ?? false,
+      ...coverageForAudit(coverage),
       lastSynchronizedAt: coverage?.lastSynchronizedAt?.toISOString() ?? null,
       gaps: asStrings(coverage?.gaps),
       unsupported: asStrings(coverage?.unsupported),

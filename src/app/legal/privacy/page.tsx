@@ -15,7 +15,8 @@ export default function PrivacyPage() {
           <CardContent className="flex flex-col gap-4 p-6">
             <PageIntro kicker="Privacy Policy draft" title="Privacy Policy">
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: [owner to insert].
+                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: not published until the
+                operator sets it.
               </p>
             </PageIntro>
             <h2 className="typography-header-heading-xs">Who this describes</h2>
@@ -29,7 +30,7 @@ export default function PrivacyPage() {
               <li>OAuth access and refresh tokens, encrypted at rest, and the scopes granted.</li>
               <li>Fan uuid, handle, and display name for people who appear in imported chats.</li>
               <li>Media identifiers, type, and status. Signed media URLs and media files are not stored for fingerprinting.</li>
-              <li>PPV chat purchase evidence: message id, message type, price, purchase time, paid attachment ids, and the free-preview id kept separate.</li>
+              <li>PPV chat purchase evidence: message id, message type, listed price, purchase time, paid attachment ids, and the free-preview id kept separate.</li>
               <li>Refund and dispute records, stored separately from purchases.</li>
               <li>Duplicate relationships the creator confirms, rejects, or reverses.</li>
               <li>Bundles, audience selections, import coverage, and deletion requests.</li>
@@ -41,13 +42,20 @@ export default function PrivacyPage() {
             <h2 className="typography-header-heading-xs">Sharing</h2>
             <p className="typography-body-default-16px-regular">
               The app calls Fanvue with the creator’s token to read the data above and, when billing is configured, to
-              read whether the creator has an active Fanvue plan. [Owner to name any subprocessors, hosting region, and
-              retention period.]
+              read whether the creator has an active Fanvue plan. The operator has not yet published subprocessors, the
+              hosting region, or a retention period.
             </p>
             <h2 className="typography-header-heading-xs">Deletion</h2>
-            <p className="typography-body-default-16px-regular">A creator can erase the workspace, tokens, and imported records from Settings. A deletion request can also be sent to the support address. [Owner to state the completion window.]</p>
+              <p className="typography-body-default-16px-regular">
+                A creator can erase the workspace, tokens, and imported records from Settings. A deletion request can
+                also be sent to the support address. Erasing inside the app is immediate for that workspace. The operator
+                has not published a completion window for requests that are only recorded.
+              </p>
             <h2 className="typography-header-heading-xs">Regions</h2>
-            <p className="typography-body-default-16px-regular">[Owner and counsel to add the GDPR, UK GDPR, and other disclosures that apply to the operator, including the legal basis for processing and international transfers.]</p>
+            <p className="typography-body-default-16px-regular">
+              GDPR, UK GDPR, legal basis, and international-transfer terms are not published yet. The operator and
+              counsel still have to add the disclosures that apply to them.
+            </p>
           </CardContent>
         </Card>
       </main>

@@ -11,7 +11,8 @@ export default function WorkspaceError({ reset }: { error: Error; reset: () => v
         </CardHeader>
         <CardContent className="flex flex-col items-start gap-4">
           <p className="typography-body-default-16px-regular">
-            The workspace is still there. Retry the page, or return to the connection screen if the problem continues.
+            The workspace is still there. This is not an empty purchase history and it is not a completed audit. Retry
+            the page, return to the connection screen, or contact support.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="primary" size="40" onClick={() => reset()}>
@@ -19,6 +20,9 @@ export default function WorkspaceError({ reset }: { error: Error; reset: () => v
             </Button>
             <Button asChild variant="secondary" size="40">
               <a href="/workspace/connection">Connection</a>
+            </Button>
+            <Button asChild variant="tertiary" size="40">
+              <a href="/support">Support</a>
             </Button>
           </div>
         </CardContent>

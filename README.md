@@ -174,6 +174,18 @@ npm run typecheck
 
 The database isolation test uses `DATABASE_URL` and deletes only the workspaces it creates.
 
+## Listing text
+
+English description for an owner to paste into the Fanvue App Store after checking it against the live plan. This repository does not set a price, and this text is not Fanvue approval.
+
+Bundle Audit helps a creator compare a proposed PPV photo bundle with purchased PPV chat photo attachments already on record. A photo uploaded again keeps its own media ID until the creator confirms the link. That confirmation is manual and can be reversed. The app does not detect duplicates automatically.
+
+An item can be a confirmed purchase overlap, a possible duplicate that still needs review, no known purchase overlap, or incomplete history. “No known purchase overlap” only describes purchased PPV chat photos in the synchronized history. It does not mean a fan has never seen the photo. Sent messages, free previews, tips, subscriptions, post purchases, and video are outside the audit. Listed price is `pricing.USD.price`, not the amount paid. Coverage and the last successful synchronization are shown. A failed import is not presented as an empty purchase history or a finished audit.
+
+Live import and live audit require an active Fanvue plan. Fanvue shows the price, limits, and taxes before payment. The app does not add its own checkout. The sample workspace uses labeled still-life illustrations and is stored apart from a connected account.
+
+Screenshots of that labeled sample, taken from the running app, are in `fanvue/listing/`. They are not a concept mockup. They show bundle selection, manual duplicate linking, audit evidence, and synchronization coverage.
+
 ## Scope of this version
 
 Photo bundles and purchased PPV chat photo attachments only. Read-only. No sending, deletion of Fanvue files, video matching, cross-platform fan matching, or training on creator data.

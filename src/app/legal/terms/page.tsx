@@ -15,7 +15,8 @@ export default function TermsPage() {
           <CardContent className="flex flex-col gap-4 p-6">
             <PageIntro kicker="Terms draft" title="Terms of Service">
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: [owner to insert].
+                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: not published until the
+                operator sets it.
               </p>
             </PageIntro>
             <h2 className="typography-header-heading-xs">The service</h2>
@@ -34,14 +35,18 @@ export default function TermsPage() {
             </p>
             <h2 className="typography-header-heading-xs">Payment</h2>
             <p className="typography-body-default-16px-regular">
-              If the operator charges for live import or live audit, payment is through Fanvue. The app does not add a
-              separate card checkout. Plan price and taxes are the ones Fanvue shows. [Owner to describe the free and
-              paid boundaries exactly as listed on Fanvue.]
+              Live import and live audit require an active Fanvue plan. Payment stays on Fanvue. This app does not add a
+              card checkout and does not publish its own price. The price, limits, and taxes are the ones Fanvue shows
+              before payment. The operator still has to create that plan in the Fanvue Developer Area. This page does
+              not name a dollar amount.
             </p>
             <h2 className="typography-header-heading-xs">Acceptable use</h2>
             <p className="typography-body-default-16px-regular">Do not use the app to harass fans, evade Fanvue’s rules, or upload unlawful content. The sample library is for demonstration and is not a creator’s catalog.</p>
             <h2 className="typography-header-heading-xs">Liability and law</h2>
-            <p className="typography-body-default-16px-regular">[Owner and counsel to add limitation of liability, warranty disclaimer, governing law, and account termination.]</p>
+              <p className="typography-body-default-16px-regular">
+                Limitation of liability, a warranty disclaimer, governing law, and account termination are not published
+                yet. The operator and counsel still have to write them.
+              </p>
           </CardContent>
         </Card>
       </main>

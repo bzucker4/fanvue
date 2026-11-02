@@ -28,9 +28,9 @@ async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string
                 See which photos in a bundle a fan has already bought.
               </h1>
               <p className="typography-body-default-16px-regular max-w-xl text-content-primary">
-                Bundle Audit compares a proposed pay-per-view photo set with purchased chat attachments, including a
-                photo you uploaded more than once. It keeps the upload, the photo itself, and the purchase as three
-                different facts.
+                Bundle Audit compares a proposed pay-per-view photo set with purchased PPV chat photo attachments. A
+                second upload stays a different media ID until you confirm it is the same photo. That link is manual and
+                can be reversed. The upload, the confirmed photo, and the purchase stay three different facts.
               </p>
               <p className="typography-body-small-14px-regular text-content-secondary">
                 Independent product. Not an official Fanvue app, and not affiliated with Fanvue. A result of “no known
@@ -123,7 +123,10 @@ async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string
             <CardContent className="typography-body-default-16px-regular flex flex-col gap-3 text-content-primary">
               <p>It does not send messages, delete files, match video, identify fans across platforms, or train a model on creator data.</p>
               <p>It does not download Fanvue media to fingerprint it. Duplicate links are confirmed by you.</p>
-              <p>Live audits are billed through Fanvue when you turn on a paid plan. This app does not run its own checkout.</p>
+              <p>
+                Live import and live audit require an active Fanvue plan. Fanvue shows the price, limits, and taxes
+                before payment. This app does not publish a price and does not run its own checkout.
+              </p>
             </CardContent>
           </Card>
         </section>

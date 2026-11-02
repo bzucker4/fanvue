@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/chrome";
-import { requireWorkspace } from "@/lib/workspace-gate";
+import { workspaceGate } from "@/lib/workspace-gate";
 
 export const dynamic = "force-dynamic";
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  const workspace = await requireWorkspace();
-  if (!workspace) redirect("/connect");
+  const gate = await workspaceGate();
+  if (gate.kind === "expired") redirect("/connect?error=expired");
+  if (gate.kind !== "ready") redirect("/connect");
   return (
     <>
       {children}

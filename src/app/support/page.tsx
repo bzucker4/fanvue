@@ -22,9 +22,17 @@ export default function SupportPage() {
               <Alert variant="error">Replace SUPPORT_EMAIL before submission. support@example.com is a placeholder.</Alert>
             ) : null}
             <h2 className="typography-header-heading-xs">Setup</h2>
+            <ol className="typography-body-default-16px-regular list-decimal space-y-2 pl-5">
+              <li>Open the labeled sample, or connect a Fanvue creator account with the read scopes on the connect screen.</li>
+              <li>On a live account, import purchase history from Connection. The sample does not replace a failed import.</li>
+              <li>In the library, confirm two uploads only when you know they are the same photo. You can reverse that link. The app does not detect duplicates for you.</li>
+              <li>Build a photo bundle, choose the fan or audience, and read the audit. Confirmed overlap cites a purchased PPV chat attachment. Incomplete history is not a “no purchase” result.</li>
+            </ol>
             <p className="typography-body-default-16px-regular">
-              Creators open Bundle Audit, connect with Fanvue, and import purchase history from the connection screen. The
-              sample workspace needs no Fanvue account.
+              Supported evidence is purchased PPV chat photos, including a broadcast purchase that appears in per-chat
+              history. Free previews, messages that were only sent, post purchases, tips, subscriptions, and video are
+              outside the audit. Listed price is the message’s pricing.USD.price, not the amount the fan paid. “No known
+              purchase overlap” does not mean a fan has never seen the photo.
             </p>
             <h2 className="typography-header-heading-xs">Reading a result</h2>
             <p className="typography-body-default-16px-regular">

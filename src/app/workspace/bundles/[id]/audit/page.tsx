@@ -19,6 +19,7 @@ import {
 import { notFound } from "next/navigation";
 import { PageIntro, PhotoFace, SecondaryLink, StatusPill, TextLink } from "@/components/chrome";
 import { BundleSteps, WorkspaceShell } from "@/components/workspace-shell";
+import { coverageForAudit } from "@/lib/live/import-failure";
 import { runWorkspaceAudit } from "@/lib/audit/load";
 import { prisma } from "@/lib/db";
 import { STATUS_LABEL, formatMoney, formatWhen, messageTypeLabel } from "@/lib/format";
@@ -58,6 +59,9 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
 
   const report = await runWorkspaceAudit(prisma, workspace.id, bundle.id);
   if (!report) notFound();
+  const visibleCoverage = coverageForAudit(workspace.importState);
+  const importFailed = workspace.mode === "live" && workspace.importState?.status === "error";
+  const notImported = workspace.mode === "live" && !workspace.importState?.lastSynchronizedAt;
 
   return (
     <WorkspaceShell mode={workspace.mode} displayName={workspace.displayName} current="/workspace/bundles">
@@ -67,6 +71,21 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
           {formatWhen(report.coverage.lastSynchronizedAt)}.
         </p>
       </PageIntro>
+
+      {importFailed ? (
+        <Alert variant="error" title="This is not a completed audit" action={<a href="/workspace/connection">Retry the import</a>}>
+          {workspace.importState?.lastError ?? "The latest import failed."} Confirmed purchase rows below, if any, are from
+          an earlier successful read. Absence of a purchase is not a finding. The sample workspace was not used.
+        </Alert>
+      ) : notImported ? (
+        <Alert variant="warning" title="Purchase history has not been imported" action={<a href="/workspace/connection">Open connection</a>}>
+          Run an import before reading this page. Nothing here is a completed audit.
+        </Alert>
+      ) : !visibleCoverage.historyComplete && workspace.mode === "live" ? (
+        <Alert variant="warning" title="Coverage is incomplete">
+          “No known purchase overlap” is withheld while history is incomplete. A missing match is not evidence of no purchase.
+        </Alert>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2" aria-label="Result counts">
         <CountCard label="Confirmed" value={report.counts.confirmed_purchase_overlap} status="confirmed_purchase_overlap" />
@@ -82,25 +101,21 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
         <CardContent className="flex flex-col gap-3">
           <ProgressBar
             variant="mono"
-            value={report.coverage.historyComplete ? 100 : 0}
+            value={visibleCoverage.historyComplete ? 100 : 0}
             title="History"
             showCompletion
-            helperLeft={
-              report.coverage.historyComplete
-                ? "Marked complete for the imported chats"
-                : "Incomplete"
-            }
-            helperRight={report.coverage.broadcastsIncluded ? "Broadcasts included" : "Broadcasts not included"}
+            helperLeft={visibleCoverage.historyComplete ? "Marked complete for the imported chats" : "Incomplete"}
+            helperRight={visibleCoverage.broadcastsIncluded ? "Broadcasts included" : "Broadcasts not included"}
             ariaLabel="Audit history coverage"
             ariaValueText={
-              report.coverage.historyComplete
+              visibleCoverage.historyComplete
                 ? "History is marked complete for the imported chats"
                 : "History is incomplete"
             }
           />
           <p className="typography-body-default-16px-regular">
-            History {report.coverage.historyComplete ? "is marked complete for the imported chats" : "is incomplete"}.
-            Broadcast messages are {report.coverage.broadcastsIncluded ? "included, because per-chat history was used" : "not included"}.
+            History {visibleCoverage.historyComplete ? "is marked complete for the imported chats" : "is incomplete"}.
+            Broadcast messages are {visibleCoverage.broadcastsIncluded ? "included, because per-chat history was used" : "not included"}.
           </p>
           {workspace.importState?.billingMode === "validation" ? (
             <Alert variant="success">

@@ -3,6 +3,7 @@ import { validationBypassForCreator } from "../fanvue/config";
 import { importPurchaseHistory, listMediaMetadata } from "../fanvue/import-history";
 import { readEntitlement } from "../fanvue/entitlement";
 import { applyLiveImport } from "./apply-import";
+import { describeImportFailure, importStoppedBeforeAnyChat } from "./import-failure";
 import { liveImportDecision } from "./import-gate";
 import { authorizedClient } from "./tokens";
 
@@ -21,6 +22,9 @@ export async function runLiveImport(db: PrismaClient, workspaceId: string) {
     throw new Error(decision.message);
   }
   const draft = await importPurchaseHistory(client);
+  if (importStoppedBeforeAnyChat(draft)) {
+    throw new Error(describeImportFailure(new Error(draft.gaps[0] ?? "Import failed before any chat could be read.")));
+  }
   const media = await listMediaMetadata(client);
   if (!media.complete && media.gap) {
     draft.historyComplete = false;
@@ -28,6 +32,8 @@ export async function runLiveImport(db: PrismaClient, workspaceId: string) {
   }
   await applyLiveImport(db, workspaceId, draft, media.items, { billingMode: decision.billingMode });
   await settleHydrations(db, workspaceId, draft.historyComplete);
+  const state = await db.importState.findUnique({ where: { workspaceId } });
+  return state?.status === "ready" ? ("ready" as const) : ("incomplete" as const);
 }
 
 async function settleHydrations(db: PrismaClient, workspaceId: string, historyComplete: boolean) {
