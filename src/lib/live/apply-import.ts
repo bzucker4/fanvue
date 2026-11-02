@@ -11,7 +11,7 @@ export async function applyLiveImport(
   workspaceId: string,
   draft: ImportDraft,
   media: MediaMetadata[],
-  options: { billingMode?: "fanvue_plan" | "validation" | "unknown" } = {},
+  options: { billingMode?: "fanvue_plan" | "validation" | "unknown"; expectedRevision?: number } = {},
 ): Promise<void> {
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
   if (!workspace || workspace.mode !== "live") {
@@ -58,7 +58,7 @@ export async function applyLiveImport(
   }
 
   for (const purchase of draft.purchases) {
-    const fanUuid = draft.fanByMessage[purchase.messageId];
+    const fanUuid = purchase.fanvueFanId;
     const fanId = fanUuid ? fanIdByUuid.get(fanUuid) : undefined;
     if (!fanId) {
       draft.historyComplete = false;
@@ -66,16 +66,17 @@ export async function applyLiveImport(
       continue;
     }
     await storePurchase(db, workspaceId, fanId, purchase, ensureMedia);
+    await db.sentOffer.deleteMany({ where: { workspaceId, fanId, messageId: purchase.messageId } });
   }
 
   for (const offer of draft.sentOffers) {
-    const fanId = fanIdByUuid.get(draft.fanByMessage[offer.messageId] ?? "");
+    const fanId = fanIdByUuid.get(offer.fanvueFanId ?? "");
     if (!fanId) continue;
     const paidIds: string[] = [];
     for (const mediaId of offer.paidMediaIds) paidIds.push(await ensureMedia(mediaId, offer.attachmentKind));
     const preview = offer.previewMediaId ? await ensureMedia(offer.previewMediaId, offer.attachmentKind) : null;
     await db.sentOffer.upsert({
-      where: { workspaceId_messageId: { workspaceId, messageId: offer.messageId } },
+      where: { workspaceId_fanId_messageId: { workspaceId, fanId, messageId: offer.messageId } },
       create: {
         workspaceId,
         fanId,
@@ -109,40 +110,31 @@ export async function applyLiveImport(
     }
   }
 
-  await db.importState.upsert({
-    where: { workspaceId },
-    create: {
-      workspaceId,
-      status: draft.historyComplete ? "ready" : "incomplete",
-      historyComplete: draft.historyComplete,
-      broadcastsIncluded: draft.broadcastsIncluded,
-      lastSynchronizedAt: new Date(),
-      chatsDiscovered: draft.chatsDiscovered,
-      chatsImported: draft.chatsImported,
-      messagesScanned: draft.messagesScanned,
-      purchasesImported: draft.purchases.length,
-      gaps: draft.gaps,
-      unsupported: draft.unsupported,
-      methodNote: draft.methodNote,
-      lastError: null,
-      billingMode: options.billingMode ?? "unknown",
-    },
-    update: {
-      status: draft.historyComplete ? "ready" : "incomplete",
-      historyComplete: draft.historyComplete,
-      broadcastsIncluded: draft.broadcastsIncluded,
-      lastSynchronizedAt: new Date(),
-      chatsDiscovered: draft.chatsDiscovered,
-      chatsImported: draft.chatsImported,
-      messagesScanned: draft.messagesScanned,
-      purchasesImported: draft.purchases.length,
-      gaps: draft.gaps,
-      unsupported: draft.unsupported,
-      methodNote: draft.methodNote,
-      lastError: null,
-      billingMode: options.billingMode ?? "unknown",
-    },
-  });
+  const stateData = {
+    status: draft.historyComplete ? "ready" : "incomplete",
+    historyComplete: draft.historyComplete,
+    broadcastsIncluded: draft.broadcastsIncluded,
+    lastSynchronizedAt: new Date(),
+    chatsDiscovered: draft.chatsDiscovered,
+    chatsImported: draft.chatsImported,
+    messagesScanned: draft.messagesScanned,
+    purchasesImported: draft.purchases.length,
+    gaps: draft.gaps,
+    unsupported: draft.unsupported,
+    methodNote: draft.methodNote,
+    lastError: null,
+    billingMode: options.billingMode ?? "unknown",
+  };
+  if (options.expectedRevision !== undefined) {
+    // Never publish completeness over a newer import or webhook invalidation.
+    await db.importState.updateMany({
+      where: { workspaceId, revision: options.expectedRevision }, data: stateData,
+    });
+  } else {
+    await db.importState.upsert({
+      where: { workspaceId }, create: { workspaceId, ...stateData }, update: stateData,
+    });
+  }
 }
 
 async function upsertUpload(
@@ -185,10 +177,9 @@ async function storePurchase(
     paid.push({ uploadId: await ensureMedia(purchase.previewMediaId, purchase.attachmentKind), role: "preview" });
   }
   const existing = await db.purchase.findUnique({
-    where: { workspaceId_messageId: { workspaceId, messageId: purchase.messageId } },
+    where: { workspaceId_fanId_messageId: { workspaceId, fanId, messageId: purchase.messageId } },
   });
   if (existing) {
-    await db.purchaseAttachment.deleteMany({ where: { purchaseId: existing.id } });
     await db.purchase.update({
       where: { id: existing.id },
       data: {
@@ -197,7 +188,7 @@ async function storePurchase(
         purchasedAt: new Date(purchase.purchasedAt ?? purchase.sentAt),
         priceCents: purchase.priceCents,
         textExcerpt: purchase.textExcerpt,
-        attachments: { create: paid },
+        attachments: { deleteMany: {}, create: paid },
       },
     });
     return;

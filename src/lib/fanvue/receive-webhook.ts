@@ -108,6 +108,8 @@ async function storeHydration(
           workspaceId,
           kind: hydration.kind,
           messageId: hydration.messageId,
+          fanvueFanId: hydration.fanvueFanId,
+          invoiceId: hydration.invoiceId,
           status: "pending",
         },
       })
@@ -130,13 +132,14 @@ async function storeHydration(
     create: {
       workspaceId,
       status: "incomplete",
+      revision: 1,
       historyComplete: false,
       broadcastsIncluded: false,
       gaps: ["A payment or message event is waiting for a per-chat history read."],
       unsupported: [],
       methodNote: "Webhook stored. Media and purchase timestamps are read from per-chat history, not invented from the event.",
     },
-    update: { status: "incomplete", historyComplete: false },
+    update: { revision: { increment: 1 }, status: "incomplete", historyComplete: false },
   });
 }
 

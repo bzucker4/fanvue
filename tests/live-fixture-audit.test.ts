@@ -1,7 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { canonicalPair } from "@/lib/audit/duplicates";
-import { runWorkspaceAudit } from "@/lib/audit/load";
+import { loadAuditRequest } from "@/lib/audit/load";
+import { auditBundle } from "@/lib/audit/engine";
 import { FanvueClient } from "@/lib/fanvue/client";
 import { importPurchaseHistory, listMediaMetadata } from "@/lib/fanvue/import-history";
 import { applyLiveImport, recordReversal } from "@/lib/live/apply-import";
@@ -128,7 +129,8 @@ describe("documented purchase fixture", () => {
       },
     });
 
-    const report = await runWorkspaceAudit(prisma, workspace.id, bundle.id);
+    const request = await loadAuditRequest(prisma, workspace.id, bundle.id);
+    const report = request ? auditBundle(request) : null;
     expect(report).not.toBeNull();
     const status = (mediaId: string) => report!.items.find((item) => item.mediaId === mediaId)?.status;
     expect(status(MEDIA.notebookAgain)).toBe("confirmed_purchase_overlap");

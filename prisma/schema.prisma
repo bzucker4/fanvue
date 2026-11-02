@@ -127,7 +127,7 @@ model Purchase {
   attachments PurchaseAttachment[]
   reversals   Reversal[]
 
-  @@unique([workspaceId, messageId])
+  @@unique([workspaceId, fanId, messageId])
   @@index([workspaceId, fanId])
 }
 
@@ -175,7 +175,7 @@ model SentOffer {
   previewUploadId String?
   createdAt       DateTime  @default(now())
 
-  @@unique([workspaceId, messageId])
+  @@unique([workspaceId, fanId, messageId])
   @@index([workspaceId])
 }
 
@@ -214,6 +214,7 @@ model BundleAudience {
 }
 
 model ImportState {
+  revision           Int       @default(0)
   workspaceId        String    @id
   workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   status             String
