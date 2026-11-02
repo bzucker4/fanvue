@@ -7,7 +7,7 @@ import { FanvueClient } from "@/lib/fanvue/client";
 import { readFanvueConfig, REQUIRED_SCOPES } from "@/lib/fanvue/config";
 import { exchangeAuthorizationCode, grantedScopes, missingRequiredScopes } from "@/lib/fanvue/oauth";
 import { parseSelfProfile } from "@/lib/live/tokens";
-import { SESSION_COOKIE } from "@/lib/session-cookie";
+import { SESSION_COOKIE, appOriginUrl, browserCookieOptions } from "@/lib/session-cookie";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const oauthError = url.searchParams.get("error");
-  const fail = (reason: string) => NextResponse.redirect(new URL(`/connect?error=${reason}`, url.origin));
+  const origin = config.appOrigin || url.origin;
+  const fail = (reason: string) => NextResponse.redirect(appOriginUrl(origin, `/connect?error=${reason}`));
 
   if (oauthError) return fail("denied");
   if (!code || !state || !config.encryptionKey || !config.sessionSecret) return fail("callback");
@@ -99,15 +100,13 @@ export async function GET(request: Request) {
       },
     });
     await prisma.oauthAttempt.delete({ where: { state } });
-    const response = NextResponse.redirect(new URL("/workspace/connection", url.origin));
-    response.cookies.set(SESSION_COOKIE, issueSessionToken(sessionId, config.sessionSecret, 30 * 24 * 60 * 60 * 1000), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
-    });
-    response.cookies.set("ba_oauth_state", "", { path: "/", maxAge: 0 });
+    const response = NextResponse.redirect(appOriginUrl(origin, "/workspace/connection"));
+    response.cookies.set(
+      SESSION_COOKIE,
+      issueSessionToken(sessionId, config.sessionSecret, 30 * 24 * 60 * 60 * 1000),
+      browserCookieOptions(origin, 30 * 24 * 60 * 60),
+    );
+    response.cookies.set("ba_oauth_state", "", { ...browserCookieOptions(origin, 0), maxAge: 0 });
     return response;
   } catch {
     return fail("exchange");

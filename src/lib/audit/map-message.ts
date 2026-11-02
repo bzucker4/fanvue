@@ -4,6 +4,8 @@
  * Purchase state comes from `purchasedAt` on the message. A priced message
  * without that timestamp was sent, not purchased. The free preview
  * (`mediaPreviewUuid`) is stored separately and is not a paid attachment.
+ * `priceCents` is the listed `pricing.USD.price`. Chat media `amountPaid`
+ * is the amount the fan paid and is not on this message object, so it is not stored.
  *
  * See: https://api.fanvue.com/docs/tutorials/working-with-messages
  * and the pricing section of https://api.fanvue.com/docs/tutorials/working-with-media

@@ -3,13 +3,15 @@ import { prisma } from "@/lib/db";
 import { encryptString, decodeEncryptionKey } from "@/lib/crypto/secret-box";
 import { assertLiveCredentials, readFanvueConfig } from "@/lib/fanvue/config";
 import { authorizationUrl, generateCodeChallenge, generateCodeVerifier, generateState } from "@/lib/fanvue/oauth";
+import { appOriginUrl, browserCookieOptions } from "@/lib/session-cookie";
 
 export async function GET(request: Request) {
   const config = readFanvueConfig();
   try {
     assertLiveCredentials(config);
   } catch {
-    return NextResponse.redirect(new URL("/connect?error=credentials", request.url));
+    const origin = config.appOrigin || new URL(request.url).origin;
+    return NextResponse.redirect(appOriginUrl(origin, "/connect?error=credentials"));
   }
   const verifier = generateCodeVerifier();
   const state = generateState();
@@ -24,12 +26,6 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(
     authorizationUrl(config, { state, codeChallenge: generateCodeChallenge(verifier) }),
   );
-  response.cookies.set("ba_oauth_state", state, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 600,
-  });
+  response.cookies.set("ba_oauth_state", state, browserCookieOptions(config.appOrigin, 600));
   return response;
 }

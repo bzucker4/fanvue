@@ -39,7 +39,18 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
               do not switch this screen into the sample workspace.
             </p>
             <p className="fine">Scopes requested: {REQUIRED_SCOPES.join(", ")}, plus openid, offline_access, and offline so refresh tokens can renew.</p>
-            <p className="fine">Redirect: {config.redirectUri || "Set APP_ORIGIN or FANVUE_REDIRECT_URI."}</p>
+            <p className="fine">
+              Redirect: {config.redirectUri || "Set APP_ORIGIN. Leave FANVUE_REDIRECT_URI empty."}
+            </p>
+            <p className="fine">
+              Webhook: {config.appOrigin ? `${config.appOrigin}/api/webhooks/fanvue` : "Set APP_ORIGIN."}
+            </p>
+            {config.appOrigin && config.redirectUri !== `${config.appOrigin}/api/oauth/callback` ? (
+              <p className="notice error">
+                The OAuth callback is not exactly {config.appOrigin}/api/oauth/callback. Leave FANVUE_REDIRECT_URI empty
+                and register that URL.
+              </p>
+            ) : null}
             {ready ? (
               <a className="button" href="/api/oauth/start">
                 Continue to Fanvue

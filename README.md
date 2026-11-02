@@ -72,23 +72,38 @@ cp .env.example .env
 # node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 npm install
-npx prisma db push
+npx prisma migrate deploy
 npm run dev
 ```
 
 Open http://localhost:3000 and choose “Open the sample audit”. The demo needs `DATABASE_URL` and `SESSION_SECRET` only.
 
+A public HTTPS tunnel is required before Fanvue can redirect or deliver webhooks to this machine. Leave `FANVUE_REDIRECT_URI` empty.
+
+```bash
+npm run dev
+cloudflared tunnel --url http://localhost:3000
+```
+
+Copy the printed `https://….trycloudflare.com` origin into `APP_ORIGIN` with no trailing slash, then restart `npm run dev`. Register exactly `{APP_ORIGIN}/api/oauth/callback` and `{APP_ORIGIN}/api/webhooks/fanvue`. The quick-tunnel hostname changes each time `cloudflared` starts. Session and OAuth cookies are `Secure` when `APP_ORIGIN` is HTTPS, including `next dev`.
+
 ## Run and deploy
 
-This repository has no Dockerfile or host config. It runs as a Node.js process in front of PostgreSQL.
+This repository has no Dockerfile or host config. It runs as a Node.js process in front of PostgreSQL. Schema changes ship as versioned SQL in `prisma/migrations`. Production applies them with `prisma migrate deploy`.
 
-Local development:
+Local development on an empty database:
 
 ```bash
 cp .env.example .env
 npm install
-npx prisma db push
+npx prisma migrate deploy
 npm run dev
+```
+
+A database that was created earlier with `prisma db push` and already matches `prisma/schema.prisma` should be baselined once, not pushed again:
+
+```bash
+npx prisma migrate resolve --applied 20261102020000_init
 ```
 
 `npm run dev` sets `NODE_ENV=development`, which is the only app runtime that can honor the validation allowlist.
@@ -98,7 +113,7 @@ Production on a Node host, with PostgreSQL reachable through `DATABASE_URL` and 
 ```bash
 npm ci
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 npm run build
 npm start
 ```
@@ -112,12 +127,16 @@ Fanvue has no sandbox. Every call hits the live API, and this app does not send 
 1. In the Fanvue Developer Area, create an app. API-only is enough to authorize and call the API. Choose off-platform, with your public HTTPS origin, when you want an App Store listing and Fanvue billing. Keep a separate app for production.
 2. On Authentication, enable `read:self`, `read:chat`, `read:media`, and `read:creator`. Add the redirect URI exactly: `{APP_ORIGIN}/api/oauth/callback`. Copy the client id and the client secret once.
 3. Register a second Fanvue account as the test creator. Authorize that account, not the account that owns the app. Do not put a password into Bundle Audit.
-4. Put the client id, client secret, `APP_ORIGIN`, `TOKEN_ENCRYPTION_KEY`, and `SESSION_SECRET` in `.env`. Leave `FANVUE_APP_UUID` empty until the app has billing, or set it together with `FANVUE_PLAN_UUID`.
-5. Run `npm run dev` with `FANVUE_VALIDATION_IMPORT=true`. Connect the test creator first. Copy the Fanvue user id shown on the connection screen into `FANVUE_VALIDATION_CREATOR_IDS`, then restart the dev server. `npm start` ignores this bypass. Any other connected creator still needs an active Fanvue plan. The flag does not load the sample story.
+4. Put the client id, client secret, `APP_ORIGIN`, `TOKEN_ENCRYPTION_KEY`, and `SESSION_SECRET` in `.env`. Leave `FANVUE_REDIRECT_URI` empty so the callback stays `{APP_ORIGIN}/api/oauth/callback`. Leave `FANVUE_APP_UUID` empty until the app has billing, or set it together with `FANVUE_PLAN_UUID`. Restart the dev server after editing `.env`.
+5. Run `npm run dev` with `FANVUE_VALIDATION_IMPORT=true` only in development or test. Connect the test creator first. Copy the Fanvue user id shown on the connection screen into `FANVUE_VALIDATION_CREATOR_IDS`, then restart the dev server. An empty allowlist, a creator who is not listed, and `npm start` all refuse the bypass. Any other connected creator still needs an active Fanvue plan. The flag does not load the sample story.
 6. Open `/connect` and choose Continue to Fanvue. Accept the four read scopes. The callback stores encrypted tokens and opens `/workspace/connection`.
 7. The purchased PPV has to already exist in that creator’s chats. Create it in Fanvue’s own UI if you need one. This app has no `write:chat` scope and will not send it. Import purchase history. A successful import lists the fan, the paid attachments, the free preview, and whether broadcasts were included.
-8. In the library, confirm a duplicate only when you know two media ids are the same photo. Suggestions are not created automatically. Build a bundle from the reuploaded photo plus another purchased photo and one new photo, select the fan who bought the original, and open the audit. Confirmed overlap should cite the message id, price, and purchase time. The new photo should say no known purchase only when coverage is complete.
-9. Webhooks need a public HTTPS URL `{APP_ORIGIN}/api/webhooks/fanvue` and `FANVUE_WEBHOOK_SECRET` from the Events tab. Subscribe to `creator.payment.succeeded`, `creator.refund.created`, `creator.dispute.flagged`, `creator.dispute.created`, `creator.message.received`, `creator.message.sent`, and `creator.message.mass_sent`. A local process is not reachable by Fanvue until you give it a public HTTPS origin. Use the Events tab test delivery after you have authorized the app. Reconciliation is “Reconcile missed updates”, which walks per-chat history again. `startDate` is not used as the only catch-up, because it filters on send time and can miss a later purchase of an older message.
+8. In the library, confirm a duplicate only when you know two media ids are the same photo. Suggestions are not created automatically. Build a bundle from the reuploaded photo plus another purchased photo and one new photo, select the fan who bought the original, and open the audit. Confirmed overlap should cite the message id, the listed price (`pricing.USD.price`), and the purchase time. That listed price is not the amount the fan paid. Chat media `amountPaid` can be lower after a discount, and the message object used for import does not include it, so this screen does not show amount paid. The new photo should say no known purchase only when coverage is complete.
+9. Webhooks need a public HTTPS URL `{APP_ORIGIN}/api/webhooks/fanvue` and `FANVUE_WEBHOOK_SECRET` from the Events tab. Subscribe to `creator.payment.succeeded`, `creator.refund.created`, `creator.dispute.flagged`, `creator.dispute.created`, `creator.message.received`, `creator.message.sent`, and `creator.message.mass_sent`. A local process is not reachable by Fanvue until `APP_ORIGIN` is the tunnel or production HTTPS origin.
+   - Subscription probe, separate from a test event: Fanvue sends an unsigned body `{ "type": "fanvue.webhook.verification" }` when the endpoint is saved. It must return 200 before any signature check and must not write a purchase, reversal, or hydration row.
+   - Events-tab Test, after the app is authorized: that delivery is signed. Its identifiers are prefixed `TEST-`, `purchaser.email` is `test@example.com`, and `creator.payment.succeeded` includes `transaction_id`. The app stores the event id and returns 200. It must not create a purchase, reversal, hydration row, or mark history incomplete. A real `creator.payment.succeeded` leaves `transaction_id` and `purchaser.email` null and schedules a per-chat read instead of inventing attachments.
+
+   Reconciliation is “Reconcile missed updates”, which walks per-chat history again. `startDate` is not used as the only catch-up, because it filters on send time and can miss a later purchase of an older message.
 
 `npm test` covers this path with fixtures shaped like the documented message, payment, and mass-message payloads. That is not a substitute for steps 6 through 9 on a real account.
 
@@ -128,7 +147,7 @@ Live mode also needs:
 | `FANVUE_CLIENT_ID` | OAuth client id |
 | `FANVUE_CLIENT_SECRET` | OAuth client secret. Server only. Shown once in the Developer Area. |
 | `APP_ORIGIN` | Public origin, no trailing slash. Production must be HTTPS. |
-| `FANVUE_REDIRECT_URI` | Optional. Defaults to `{APP_ORIGIN}/api/oauth/callback`. Register that exact URI. |
+| `FANVUE_REDIRECT_URI` | Leave empty. The callback is then exactly `{APP_ORIGIN}/api/oauth/callback`. Register that URL. |
 | `TOKEN_ENCRYPTION_KEY` | Encrypts access tokens, refresh tokens, and the PKCE verifier. |
 | `FANVUE_APP_UUID` | Enables subscription checks and the listing link. |
 | `FANVUE_PLAN_UUID` | Active pricing-plan id for the App Store deeplink. |

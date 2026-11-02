@@ -48,6 +48,14 @@ export function decideWebhook(event: Envelope, alreadySeen: boolean): WebhookDec
   const type = event.type ?? "";
   if (!eventId || !type) return { action: "reject", reason: "Event is missing id or type." };
   if (alreadySeen) return { action: "ignore_duplicate", eventId, type };
+  if (isSyntheticFanvueEvent(event)) {
+    return {
+      action: "store_only",
+      eventId,
+      type,
+      note: "Fanvue test delivery. Stored for idempotency. No purchase, reversal, or hydration was written.",
+    };
+  }
 
   const data = event.data ?? {};
   if (type === "creator.payment.succeeded") {
@@ -130,6 +138,34 @@ export function decideWebhook(event: Envelope, alreadySeen: boolean): WebhookDec
     type,
     note: "Stored for idempotency. This topic does not change photo purchase evidence.",
   };
+}
+
+/**
+ * Events-tab and POST /webhooks/test deliveries are synthetic.
+ * Fanvue prefixes their identifiers with TEST-, sets purchaser.email to test@example.com,
+ * and on creator.payment.succeeded sets transaction_id. Production payments leave both null.
+ * The unsigned fanvue.webhook.verification probe never reaches this function.
+ */
+export function isSyntheticFanvueEvent(event: Envelope): boolean {
+  return containsSyntheticMarker(event.data ?? {}, null, event.type ?? "");
+}
+
+function containsSyntheticMarker(value: unknown, key: string | null, eventType: string): boolean {
+  if (typeof value === "string") {
+    if (key === "email" && value === "test@example.com") return true;
+    if (key === "transaction_id" && eventType === "creator.payment.succeeded" && value.length > 0) return true;
+    if (key && isIdentifierKey(key) && value.startsWith("TEST-")) return true;
+    return false;
+  }
+  if (Array.isArray(value)) return value.some((item) => containsSyntheticMarker(item, key, eventType));
+  if (value && typeof value === "object") {
+    return Object.entries(value).some(([childKey, child]) => containsSyntheticMarker(child, childKey, eventType));
+  }
+  return false;
+}
+
+function isIdentifierKey(key: string): boolean {
+  return key === "id" || key === "uuid" || key.endsWith("_id") || key.endsWith("_uuid");
 }
 
 function stringField(record: Record<string, unknown>, key: string): string | null {

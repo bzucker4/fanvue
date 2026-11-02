@@ -137,11 +137,15 @@ export default async function ConnectionPage({
                   <strong>
                     {purchase.fan.displayName} · {messageTypeLabel(purchase.messageType)}
                   </strong>
-                  <span>{formatMoney(purchase.priceCents, purchase.currency)}</span>
+                  <span>Listed {formatMoney(purchase.priceCents, purchase.currency)}</span>
                 </div>
                 <p className="fine">
                   Purchased {formatWhen(purchase.purchasedAt.toISOString())}
                   {purchase.invoiceId ? ` · Invoice ${purchase.invoiceId}` : ""}
+                </p>
+                <p className="fine">
+                  Listed price is the message’s pricing.USD.price. The amount the fan paid can differ after a discount
+                  and is not on this record.
                 </p>
                 <p className="mono">Message {purchase.messageId}</p>
                 <p>

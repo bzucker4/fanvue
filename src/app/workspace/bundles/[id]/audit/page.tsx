@@ -144,8 +144,11 @@ function Evidence({ item }: { item: ItemAudit }) {
             {evidence.fanName} purchased {messageTypeLabel(evidence.messageType).toLowerCase()}
           </strong>
           <p className="fine">
-            {formatWhen(evidence.purchasedAt)} · {formatMoney(evidence.priceCents, evidence.currency)}
+            {formatWhen(evidence.purchasedAt)} · Listed {formatMoney(evidence.priceCents, evidence.currency)}
             {evidence.invoiceId ? ` · ${evidence.invoiceId}` : ""}
+          </p>
+          <p className="fine">
+            Listed price is pricing.USD.price, not the amount paid. The charged amount is not imported from this message.
           </p>
           <p className="mono">Message {evidence.messageId}</p>
           <p>

@@ -5,7 +5,8 @@ import { issueSessionToken, readSessionToken } from "@/lib/crypto/session";
 import { authorizationUrl, basicAuthHeader, exchangeAuthorizationCode, generateCodeChallenge, generateCodeVerifier } from "@/lib/fanvue/oauth";
 import { readFanvueConfig } from "@/lib/fanvue/config";
 import { isVerificationProbe, verifyFanvueSignature } from "@/lib/fanvue/signature";
-import { decideWebhook } from "@/lib/fanvue/webhooks";
+import { decideWebhook, isSyntheticFanvueEvent } from "@/lib/fanvue/webhooks";
+import { appOriginUrl, browserCookieOptions, browserCookieSecure } from "@/lib/session-cookie";
 
 const secret = "test-webhook-secret";
 
@@ -100,6 +101,45 @@ describe("webhook signatures and decisions", () => {
     }
   });
 
+  it("stores synthetic payment, refund, and email markers without purchase side effects", () => {
+    const payment = {
+      id: "evt-test-pay",
+      type: "creator.payment.succeeded",
+      data: {
+        source: "message",
+        id: "TEST-FV-1",
+        transaction_id: "txn_test",
+        message_uuid: "TEST-msg",
+        gross: 1999,
+        purchaser: { uuid: "TEST-fan", email: "test@example.com" },
+      },
+    };
+    expect(isSyntheticFanvueEvent(payment)).toBe(true);
+    const decision = decideWebhook(payment, false);
+    expect(decision.action).toBe("store_only");
+    expect(decideWebhook(
+      {
+        id: "evt-real",
+        type: "creator.payment.succeeded",
+        data: {
+          source: "message",
+          id: "FV-9",
+          message_uuid: "msg-1",
+          purchaser: { uuid: "11111111-1111-1111-1111-111111111111", email: null },
+        },
+      },
+      false,
+    ).action).toBe("store_payment");
+    expect(decideWebhook(
+      {
+        id: "evt-test-refund",
+        type: "creator.refund.created",
+        data: { payment_id: "TEST-FV-1", amount: 800, purchaser: { uuid: "fan-1" } },
+      },
+      false,
+    ).action).toBe("store_only");
+  });
+
   it("treats a sent message as a signal, not a purchase", () => {
     const decision = decideWebhook(
       {
@@ -130,6 +170,28 @@ describe("oauth and token storage", () => {
     expect(url.searchParams.get("scope")).toContain("read:chat");
     expect(url.searchParams.get("scope")).not.toContain("write:chat");
     expect(url.toString()).not.toContain("super-secret");
+    expect(url.searchParams.get("redirect_uri")).toBe("https://audit.example.com/api/oauth/callback");
+  });
+
+  it("keeps the callback on APP_ORIGIN and marks cookies Secure only for HTTPS", () => {
+    const config = readFanvueConfig({
+      APP_ORIGIN: "https://bundle-audit.trycloudflare.com/",
+      FANVUE_REDIRECT_URI: "",
+    });
+    expect(config.appOrigin).toBe("https://bundle-audit.trycloudflare.com");
+    expect(config.redirectUri).toBe("https://bundle-audit.trycloudflare.com/api/oauth/callback");
+    expect(appOriginUrl(config.appOrigin, "/connect?error=credentials").href).toBe(
+      "https://bundle-audit.trycloudflare.com/connect?error=credentials",
+    );
+    expect(browserCookieSecure(config.appOrigin)).toBe(true);
+    expect(browserCookieOptions(config.appOrigin, 600)).toMatchObject({
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge: 600,
+    });
+    expect(browserCookieSecure("http://localhost:3000")).toBe(false);
   });
 
   it("sends the client secret as HTTP basic auth, not in the body", async () => {
