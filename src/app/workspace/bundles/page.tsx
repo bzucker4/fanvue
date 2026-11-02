@@ -1,4 +1,7 @@
-import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle, EmptyState, Link as FanvueLink, TextField } from "@fanvue/ui";
+import NextLink from "next/link";
+import { PageIntro } from "@/components/chrome";
+import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -17,39 +20,43 @@ export default async function BundlesPage() {
 
   return (
     <WorkspaceShell mode={workspace.mode} displayName={workspace.displayName} current="/workspace/bundles">
-      <div className="page-head">
-        <div>
-          <p className="kicker">Bundle builder</p>
-          <h1 style={{ fontSize: "2.4rem" }}>Proposed photo sets</h1>
-        </div>
-      </div>
-      <section className="card stack">
-        <h2>New bundle</h2>
-        <form action={createBundle} className="stack">
-          <label className="field">
-            Name
-            <input name="name" required maxLength={80} placeholder="Spring still life" />
-          </label>
-          <button className="button" type="submit">
-            Create bundle
-          </button>
-        </form>
-      </section>
+      <PageIntro kicker="Bundle builder" title="Proposed photo sets" />
+      <Card hierarchy="primary" type="header-only">
+        <CardHeader>
+          <CardTitle>New bundle</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={createBundle} className="flex max-w-md flex-col items-start gap-3">
+            <TextField name="name" label="Name" required maxLength={80} placeholder="Spring still life" fullWidth />
+            <SubmitButton variant="primary" size="40">
+              Create bundle
+            </SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
       {bundles.length === 0 ? (
-        <div className="card empty">
-          <h3>No bundles yet</h3>
-          <p className="fine">Create one, choose photos, then choose who it is for.</p>
-        </div>
+        <EmptyState
+          variant="centered"
+          titleSize="sm"
+          mediaSize="xs"
+          title="No bundles yet"
+          description="Create one, choose photos, then choose who it is for."
+        />
       ) : (
-        <div className="stack">
+        <div className="flex flex-col gap-3">
           {bundles.map((bundle) => (
-            <Link key={bundle.id} href={`/workspace/bundles/${bundle.id}`} className="ledger-row" style={{ textDecoration: "none" }}>
-              <strong>{bundle.name}</strong>
-              <p className="fine">
-                {bundle.items.length} photo{bundle.items.length === 1 ? "" : "s"} · {bundle.audience.length} fan
-                {bundle.audience.length === 1 ? "" : "s"} selected
-              </p>
-            </Link>
+            <FanvueLink key={bundle.id} asChild size="16">
+              <NextLink
+                href={`/workspace/bundles/${bundle.id}`}
+                className="rounded-md border border-border-primary bg-surface-primary p-4 no-underline"
+              >
+                <strong className="typography-body-default-16px-semibold block text-content-primary">{bundle.name}</strong>
+                <p className="typography-body-small-14px-regular mt-1 text-content-secondary">
+                  {bundle.items.length} photo{bundle.items.length === 1 ? "" : "s"} · {bundle.audience.length} fan
+                  {bundle.audience.length === 1 ? "" : "s"} selected
+                </p>
+              </NextLink>
+            </FanvueLink>
           ))}
         </div>
       )}
