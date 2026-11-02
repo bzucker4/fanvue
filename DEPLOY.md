@@ -26,6 +26,7 @@ Set these for **Production**. Preview/Development get separate values: their own
 | `FANVUE_CLIENT_ID`, `FANVUE_CLIENT_SECRET` | Fanvue Developer Area |
 | `FANVUE_APP_UUID`, `FANVUE_PLAN_UUID` | Fanvue Developer Area, after you create the app and plan |
 | `FANVUE_WEBHOOK_SECRET` | Events tab, per app |
+| `CRON_SECRET` | `openssl rand -base64 32`. Authorizes the daily cleanup of abandoned sign-in attempts (`vercel.json`). Vercel sends it automatically. |
 | `SUPPORT_EMAIL` | `atlascreative95@gmail.com` |
 | `SECURITY_EMAIL` | `atlascreative95@gmail.com` |
 | `APP_OWNER_NAME` | `Brian Zucker` |
@@ -53,5 +54,5 @@ Generate the two secrets yourself and paste them straight into Vercel. Do not co
 - **Import length on Vercel.** `runLiveImport` runs inside a Server Action with no `maxDuration` set. A creator with a long chat history may hit the function time limit. Test with a large account, and raise the limit on the page that submits the import (Next.js route segment config) or move imports to a background job.
 - **Existing creators must reimport** history after the migration deploys.
 - **Legal pages** (`/legal/privacy`, `/legal/terms`) are a first draft with `[bracketed]` items for counsel: governing law, liability cap, retention periods, legal bases, effective date, database provider.
-- Retention for orphaned deletion requests, expired OAuth attempts, webhook ids, and backups still needs an owner-approved policy.
+- Abandoned OAuth sign-in attempts are deleted daily by a Vercel Cron job (`vercel.json`, needs `CRON_SECRET`). Retention for orphaned deletion requests, webhook ids, and backups still needs an owner-approved policy.
 - Name availability for "Bundle Audit" has not been checked.
