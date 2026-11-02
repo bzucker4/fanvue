@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#efe8dc"/>
+  <rect x="120" y="180" width="560" height="640" rx="16" fill="#fffaf3" stroke="#e3d5c3"/>
+  <rect x="150" y="220" width="500" height="300" fill="#d9e4ea"/>
+  <path d="M170 470l70-90 50 50 80-120 90 110 40-40 90 90v40H170z" fill="#8ea0aa"/>
+  <rect x="300" y="360" width="28" height="110" fill="#f4f7f8"/>
+  <rect x="410" y="320" width="36" height="150" fill="#f7f4ee"/>
+  <rect x="160" y="560" width="220" height="12" fill="#e6dccb"/>
+  <rect x="160" y="600" width="180" height="12" fill="#e6dccb"/>
+  <rect x="160" y="640" width="200" height="12" fill="#e6dccb"/>
+  <circle cx="560" cy="680" r="46" fill="none" stroke="#c96b4a" stroke-width="8"/>
+  <text x="90" y="130" fill="#6f655c" font-family="Georgia, serif" font-size="28">Broadcast purchase</text>
+</svg>

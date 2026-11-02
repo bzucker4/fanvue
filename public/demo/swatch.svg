@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#f7f4ef"/>
+  <g transform="rotate(-8 400 500)">
+    <rect x="180" y="220" width="440" height="520" rx="12" fill="#f3efe4" stroke="#ddd4c6"/>
+    <path d="M180 300h440M180 380h440M180 460h440M180 540h440M180 620h440" stroke="#e4dccd" stroke-width="10"/>
+    <path d="M260 220v520M340 220v520M420 220v520M500 220v520" stroke="#e4dccd" stroke-width="10"/>
+  </g>
+  <text x="80" y="120" fill="#6f655c" font-family="Georgia, serif" font-size="28">Free preview - cotton swatch</text>
+</svg>

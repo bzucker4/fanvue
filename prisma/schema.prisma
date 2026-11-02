@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// One creator workspace. Demo and live rows never share a workspace.
+model Workspace {
+  id             String   @id @default(cuid())
+  mode           String
+  displayName    String
+  handle         String?
+  fanvueUserUuid String?  @unique
+  createdAt      DateTime @default(now())
+
+  session           AppSession?
+  token             OauthToken?
+  fans              Fan[]
+  uploads           Upload[]
+  edges             DuplicateEdge[]
+  purchases         Purchase[]
+  reversals         Reversal[]
+  sentOffers        SentOffer[]
+  bundles           Bundle[]
+  importState       ImportState?
+  webhookEvents     WebhookEvent[]
+  pendingHydrations PendingHydration[]
+  deletionRequests  DeletionRequest[]
+}
+
+model AppSession {
+  id          String    @id
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
+model OauthAttempt {
+  state               String   @id
+  codeVerifierCipher  String
+  expiresAt           DateTime
+  createdAt           DateTime @default(now())
+}
+
+model OauthToken {
+  workspaceId   String    @id
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accessCipher  String
+  refreshCipher String
+  expiresAt     DateTime
+  scope         String
+  keyVersion    Int       @default(1)
+  updatedAt     DateTime  @updatedAt
+}
+
+model Fan {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  fanvueUuid  String
+  displayName String
+  handle      String
+  createdAt   DateTime @default(now())
+
+  purchases  Purchase[]
+  sentOffers SentOffer[]
+  audience   BundleAudience[]
+
+  @@unique([workspaceId, fanvueUuid])
+  @@index([workspaceId])
+}
+
+/// A specific Fanvue media ID. This is an upload, not a content identity.
+model Upload {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  mediaId     String
+  label       String
+  kind        String
+  sampleAsset String?
+  status      String   @default("ready")
+  createdAt   DateTime @default(now())
+
+  bundleItems BundleItem[]
+  attachments PurchaseAttachment[]
+
+  @@unique([workspaceId, mediaId])
+  @@index([workspaceId])
+}
+
+/// Pairwise duplicate relationship. Suggestions never become identity by themselves.
+model DuplicateEdge {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leftUploadId  String
+  rightUploadId String
+  status        String
+  note          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([workspaceId, leftUploadId, rightUploadId])
+  @@index([workspaceId])
+}
+
+model Purchase {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  fanId        String
+  fan          Fan       @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  messageId    String
+  messageType  String
+  purchasedAt  DateTime
+  priceCents   Int?
+  currency     String    @default("USD")
+  invoiceId    String?
+  textExcerpt  String?
+  createdAt    DateTime  @default(now())
+
+  attachments PurchaseAttachment[]
+  reversals   Reversal[]
+
+  @@unique([workspaceId, messageId])
+  @@index([workspaceId, fanId])
+}
+
+model PurchaseAttachment {
+  id         String   @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  uploadId   String
+  upload     Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  role       String
+
+  @@unique([purchaseId, uploadId, role])
+  @@index([uploadId])
+}
+
+/// Refund and dispute records stay separate from the purchase they refer to.
+model Reversal {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  purchaseId  String?
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  invoiceId   String?
+  externalId  String
+  kind        String
+  amountCents Int?
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, externalId])
+  @@index([workspaceId])
+}
+
+/// A priced message with no purchase timestamp. Never counted as a purchase.
+model SentOffer {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  fanId           String
+  fan             Fan       @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  messageId       String
+  messageType     String
+  sentAt          DateTime
+  priceCents      Int?
+  paidUploadIds   Json
+  previewUploadId String?
+  createdAt       DateTime  @default(now())
+
+  @@unique([workspaceId, messageId])
+  @@index([workspaceId])
+}
+
+model Bundle {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  createdAt   DateTime @default(now())
+
+  items    BundleItem[]
+  audience BundleAudience[]
+
+  @@index([workspaceId])
+}
+
+model BundleItem {
+  id       String @id @default(cuid())
+  bundleId String
+  bundle   Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  uploadId String
+  upload   Upload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  position Int
+
+  @@unique([bundleId, uploadId])
+}
+
+model BundleAudience {
+  id       String @id @default(cuid())
+  bundleId String
+  bundle   Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  fanId    String
+  fan      Fan    @relation(fields: [fanId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, fanId])
+}
+
+model ImportState {
+  workspaceId        String    @id
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status             String
+  historyComplete    Boolean
+  broadcastsIncluded Boolean
+  lastSynchronizedAt DateTime?
+  chatsDiscovered    Int       @default(0)
+  chatsImported      Int       @default(0)
+  messagesScanned    Int       @default(0)
+  purchasesImported  Int       @default(0)
+  gaps               Json
+  unsupported        Json
+  methodNote         String
+  lastError          String?
+  updatedAt          DateTime  @updatedAt
+}
+
+model WebhookEvent {
+  id          String    @id
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type        String
+  receivedAt  DateTime  @default(now())
+
+  @@index([workspaceId])
+}
+
+model PendingHydration {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  kind        String
+  messageId   String?
+  fanvueFanId String?
+  invoiceId   String?
+  payload     Json
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId, status])
+}
+
+model DeletionRequest {
+  id          String    @id @default(cuid())
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  contact     String
+  detail      String
+  status      String    @default("received")
+  createdAt   DateTime  @default(now())
+}

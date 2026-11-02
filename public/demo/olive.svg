@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#f4f6f0"/>
+  <path d="M400 180c20 160 20 320 0 620" fill="none" stroke="#6d8a4e" stroke-width="14" stroke-linecap="round"/>
+  <g fill="#8eae68">
+    <ellipse cx="320" cy="320" rx="70" ry="28" transform="rotate(-30 320 320)"/>
+    <ellipse cx="490" cy="400" rx="74" ry="28" transform="rotate(24 490 400)"/>
+    <ellipse cx="330" cy="500" rx="68" ry="26" transform="rotate(-20 330 500)"/>
+    <ellipse cx="480" cy="590" rx="70" ry="26" transform="rotate(28 480 590)"/>
+    <ellipse cx="350" cy="690" rx="64" ry="24" transform="rotate(-18 350 690)"/>
+  </g>
+  <text x="80" y="120" fill="#6f655c" font-family="Georgia, serif" font-size="28">Sent, not purchased</text>
+</svg>

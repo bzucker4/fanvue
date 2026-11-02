@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#f4efe6"/>
+  <rect x="90" y="90" width="620" height="820" rx="28" fill="#fbf7f1" stroke="#e4d9cb"/>
+  <ellipse cx="400" cy="760" rx="180" ry="22" fill="#e7d3bf"/>
+  <path d="M330 250c20 90 10 180-30 250-40 70-20 180 40 230 30 24 90 24 120 0 60-50 80-160 40-230-40-70-50-160-30-250" fill="#d7b39a"/>
+  <path d="M360 250h80c8 70 2 140-16 200-20 64-8 140 18 190 10 18 8 40-8 52-40 28-110 28-150 0-16-12-18-34-8-52 26-50 38-126 18-190-18-60-24-130-16-200z" fill="#e7c7b0"/>
+  <path d="M390 240c40 8 70 8 100 0 8 18 10 36-2 48-30 8-70 8-104 0-8-16-4-34 6-48z" fill="#c9896d"/>
+  <path d="M430 360c30 40 34 90 10 140" fill="none" stroke="#f6e6da" stroke-width="10" stroke-linecap="round"/>
+  <text x="120" y="150" fill="#6f655c" font-family="Georgia, serif" font-size="28">Still life A</text>
+</svg>

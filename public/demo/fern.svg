@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#f3f0e6"/>
+  <rect x="140" y="150" width="520" height="700" rx="8" fill="#f7f1df" stroke="#e1d5b5"/>
+  <path d="M400 760V250" stroke="#7d8f55" stroke-width="6"/>
+  <g fill="none" stroke="#7d8f55" stroke-width="6" stroke-linecap="round">
+    <path d="M400 320c-70 10-110 40-140 80"/><path d="M400 380c-80 8-120 36-150 70"/>
+    <path d="M400 450c-70 6-110 30-130 60"/><path d="M400 520c-60 4-90 24-110 48"/>
+    <path d="M400 320c70 10 110 40 140 80"/><path d="M400 380c80 8 120 36 150 70"/>
+    <path d="M400 450c70 6 110 30 130 60"/><path d="M400 520c60 4 90 24 110 48"/>
+  </g>
+  <text x="90" y="110" fill="#6f655c" font-family="Georgia, serif" font-size="28">Suggestion only</text>
+</svg>
