@@ -1,4 +1,8 @@
-import { PhotoFace, StatusPill } from "@/components/chrome";
+import { Badge, Card, CardContent, CardHeader, CardTitle, EmptyState } from "@fanvue/ui";
+import { PageIntro, PhotoFace, StatusPill } from "@/components/chrome";
+import { CopyId } from "@/components/copy-id";
+import { DuplicateUploadFields } from "@/components/duplicate-upload-fields";
+import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -22,57 +26,57 @@ export default async function LibraryPage() {
 
   return (
     <WorkspaceShell mode={workspace.mode} displayName={workspace.displayName} current="/workspace/library">
-      <div className="page-head">
-        <div>
-          <p className="kicker">Media library</p>
-          <h1 style={{ fontSize: "2.4rem" }}>Photos and duplicate review</h1>
-          <p className="fine">Each card is one upload, identified by its Fanvue media ID. Confirming a pair does not pull in other suggestions.</p>
-        </div>
-      </div>
+      <PageIntro kicker="Media library" title="Photos and duplicate review">
+        <p className="typography-body-small-14px-regular text-content-secondary">
+          Each card is one upload, identified by its Fanvue media ID. Confirming a pair does not pull in other suggestions.
+        </p>
+      </PageIntro>
 
-      <section className="stack" id="review">
-        <h2>Review queue</h2>
+      <section className="flex flex-col gap-3" id="review">
+        <h2 className="typography-header-heading-xs">Review queue</h2>
         {suggestions.length === 0 ? (
-          <div className="card empty">
-            <h3>No suggestions waiting</h3>
-            <p className="fine">Approximate matches stay here until you confirm or reject them. Nothing is merged automatically.</p>
-          </div>
+          <EmptyState
+            variant="centered"
+            titleSize="sm"
+            mediaSize="xs"
+            title="No suggestions waiting"
+            description="Approximate matches stay here until you confirm or reject them. Nothing is merged automatically."
+          />
         ) : (
           suggestions.map((edge) => {
             const left = byId.get(edge.leftUploadId);
             const right = byId.get(edge.rightUploadId);
             if (!left || !right) return null;
             return (
-              <article key={edge.id} className="queue">
-                <PhotoFace src={left.sampleAsset} label={left.label} liveUploadId={workspace.mode === "live" ? left.id : null} />
-                <PhotoFace src={right.sampleAsset} label={right.label} liveUploadId={workspace.mode === "live" ? right.id : null} />
-                <div className="stack">
+              <article key={edge.id} className="grid gap-4 rounded-md border border-border-primary bg-surface-primary p-3 md:grid-cols-[96px_96px_1fr] md:items-center">
+                <PhotoFace className="h-28 w-24 rounded-xs bg-surface-secondary object-cover" src={left.sampleAsset} label={left.label} liveUploadId={workspace.mode === "live" ? left.id : null} />
+                <PhotoFace className="h-28 w-24 rounded-xs bg-surface-secondary object-cover" src={right.sampleAsset} label={right.label} liveUploadId={workspace.mode === "live" ? right.id : null} />
+                <div className="flex flex-col gap-2">
                   <StatusPill status="possible_duplicate_requiring_review" label="Possible duplicate requiring review" />
-                  <strong>
+                  <strong className="typography-body-default-16px-semibold">
                     {left.label} and {right.label}
                   </strong>
-                  <p className="fine">{edge.note ?? "Suggested only. This is not a confirmed content identity."}</p>
-                  <p className="mono">
-                    {left.mediaId}
-                    <br />
-                    {right.mediaId}
+                  <p className="typography-body-small-14px-regular text-content-secondary">
+                    {edge.note ?? "Suggested only. This is not a confirmed content identity."}
                   </p>
-                  <div className="row-actions">
+                  <CopyId label={left.label} value={left.mediaId} />
+                  <CopyId label={right.label} value={right.mediaId} />
+                  <div className="flex flex-wrap gap-2">
                     <form action={setDuplicateStatus}>
                       <input type="hidden" name="left" value={left.id} />
                       <input type="hidden" name="right" value={right.id} />
                       <input type="hidden" name="status" value="confirmed" />
-                      <button className="button" type="submit">
+                      <SubmitButton variant="primary" size="32">
                         Confirm same photo
-                      </button>
+                      </SubmitButton>
                     </form>
                     <form action={setDuplicateStatus}>
                       <input type="hidden" name="left" value={left.id} />
                       <input type="hidden" name="right" value={right.id} />
                       <input type="hidden" name="status" value="rejected" />
-                      <button className="button-quiet" type="submit">
+                      <SubmitButton variant="tertiary" size="32">
                         Not the same
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </div>
@@ -82,41 +86,28 @@ export default async function LibraryPage() {
         )}
       </section>
 
-      <section className="card stack">
-        <h2>Link two uploads yourself</h2>
-        <form action={setDuplicateStatus} className="stack">
-          <div className="grid-2">
-            <label className="field">
-              First upload
-              <select name="left" required>
-                {photos.map((photo) => (
-                  <option key={photo.id} value={photo.id}>
-                    {photo.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Second upload
-              <select name="right" required defaultValue={photos[1]?.id ?? ""}>
-                {photos.map((photo) => (
-                  <option key={photo.id} value={photo.id}>
-                    {photo.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <input type="hidden" name="status" value="confirmed" />
-          <button className="button-secondary" type="submit">
-            Confirm these are the same photo
-          </button>
-        </form>
-      </section>
+      <Card hierarchy="primary" type="header-only">
+        <CardHeader>
+          <CardTitle>Link two uploads yourself</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {photos.length === 0 ? (
+            <p className="typography-body-small-14px-regular text-content-secondary">Import photo uploads before confirming a pair.</p>
+          ) : (
+            <form action={setDuplicateStatus} className="flex flex-col gap-3">
+              <DuplicateUploadFields photos={photos.map((photo) => ({ id: photo.id, label: photo.label }))} />
+              <input type="hidden" name="status" value="confirmed" />
+              <SubmitButton variant="secondary" size="40">
+                Confirm these are the same photo
+              </SubmitButton>
+            </form>
+          )}
+        </CardContent>
+      </Card>
 
       {confirmed.length > 0 ? (
-        <section className="stack">
-          <h2>Confirmed same photo</h2>
+        <section className="flex flex-col gap-3">
+          <h2 className="typography-header-heading-xs">Confirmed same photo</h2>
           {confirmed.map((edge) => (
             <EdgeRow key={edge.id} edge={edge} byId={byId} action="reversed" actionLabel="Reverse confirmation" />
           ))}
@@ -124,39 +115,45 @@ export default async function LibraryPage() {
       ) : null}
 
       {closed.length > 0 ? (
-        <section className="stack">
-          <h2>Rejected or reversed</h2>
+        <section className="flex flex-col gap-3">
+          <h2 className="typography-header-heading-xs">Rejected or reversed</h2>
           {closed.map((edge) => (
             <EdgeRow key={edge.id} edge={edge} byId={byId} action="confirmed" actionLabel="Confirm again" />
           ))}
         </section>
       ) : null}
 
-      <section className="stack">
-        <h2>All uploads</h2>
-        <div className="photo-grid">
-          {uploads.map((upload) => (
-            <article key={upload.id} className="photo-card">
-              <PhotoFace
-                src={upload.sampleAsset}
-                label={upload.label}
-                liveUploadId={!upload.sampleAsset && workspace.mode === "live" ? upload.id : null}
-              />
-              <div className="meta">
-                <span className="kicker">{upload.kind === "image" ? "Photo upload" : upload.kind}</span>
-                <h3>{upload.label}</h3>
-                <p className="mono">{upload.mediaId}</p>
-                {upload.kind !== "image" ? <span className="pill incomplete">Outside photo audit</span> : null}
-              </div>
-            </article>
-          ))}
-        </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="typography-header-heading-xs">All uploads</h2>
         {uploads.length === 0 ? (
-          <div className="card empty">
-            <h3>No media yet</h3>
-            <p className="fine">A live import adds media IDs from purchased attachments and from ready vault metadata. Thumbnails are requested when you open this page and are not saved.</p>
+          <EmptyState
+            variant="centered"
+            titleSize="sm"
+            mediaSize="xs"
+            title="No media yet"
+            description="A live import adds media IDs from purchased attachments and from ready vault metadata. Thumbnails are requested when you open this page and are not saved."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 lg:grid-cols-3">
+            {uploads.map((upload) => (
+              <article key={upload.id} className="flex flex-col overflow-hidden rounded-md border border-border-primary bg-surface-primary">
+                <PhotoFace
+                  src={upload.sampleAsset}
+                  label={upload.label}
+                  liveUploadId={!upload.sampleAsset && workspace.mode === "live" ? upload.id : null}
+                />
+                <div className="flex flex-col gap-1 p-3">
+                  <span className="typography-description-12px-semibold text-content-secondary uppercase">
+                    {upload.kind === "image" ? "Photo upload" : upload.kind}
+                  </span>
+                  <h3 className="typography-body-default-16px-semibold">{upload.label}</h3>
+                  <CopyId label="Media" value={upload.mediaId} />
+                  {upload.kind !== "image" ? <StatusPill status="incomplete_or_unsupported_history" label="Outside photo audit" /> : null}
+                </div>
+              </article>
+            ))}
           </div>
-        ) : null}
+        )}
       </section>
     </WorkspaceShell>
   );
@@ -177,20 +174,22 @@ function EdgeRow({
   const right = byId.get(edge.rightUploadId);
   if (!left || !right) return null;
   return (
-    <article className="ledger-row">
-      <div className="split">
-        <strong>
+    <article className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border-primary bg-surface-primary p-3">
+      <div className="flex flex-col gap-2">
+        <strong className="typography-body-default-16px-semibold">
           {left.label} · {right.label}
         </strong>
-        <span className="pill neutral">{edge.status}</span>
+        <Badge variant={edge.status === "confirmed" ? "brand" : "default"} leftDot={false}>
+          {edge.status === "confirmed" ? "Confirmed link" : edge.status === "reversed" ? "Reversed" : "Rejected"}
+        </Badge>
       </div>
       <form action={setDuplicateStatus}>
         <input type="hidden" name="left" value={left.id} />
         <input type="hidden" name="right" value={right.id} />
         <input type="hidden" name="status" value={action} />
-        <button className="button-quiet" type="submit">
+        <SubmitButton variant="tertiary" size="32">
           {actionLabel}
-        </button>
+        </SubmitButton>
       </form>
     </article>
   );

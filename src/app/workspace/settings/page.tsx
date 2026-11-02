@@ -1,9 +1,12 @@
-import Link from "next/link";
+import { Alert, Card, CardContent, CardHeader, CardTitle } from "@fanvue/ui";
+import { PageIntro, TextLink } from "@/components/chrome";
+import { EraseWorkspaceDialog, RequestDeletionForm } from "@/components/workspace-deletion";
+import { SubmitButton } from "@/components/submit-button";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { REQUIRED_SCOPES } from "@/lib/fanvue/config";
 import { ownerContact } from "@/lib/site";
 import { requireWorkspace } from "@/lib/workspace-gate";
-import { leaveWorkspace, submitDeletion } from "../actions";
+import { leaveWorkspace } from "../actions";
 
 export const metadata = { title: "Settings" };
 
@@ -19,70 +22,79 @@ export default async function SettingsPage({
 
   return (
     <WorkspaceShell mode={workspace.mode} displayName={workspace.displayName} current="/workspace/settings">
-      <div className="page-head">
-        <div>
-          <p className="kicker">Settings</p>
-          <h1 style={{ fontSize: "2.4rem" }}>Support and your data</h1>
-        </div>
-      </div>
+      <PageIntro kicker="Settings" title="Support and your data" />
       {params.deletion === "received" ? (
-        <p className="notice ok">Deletion request received. The workspace is still here until you erase it.</p>
+        <Alert variant="success">Deletion request received. The workspace is still here until you erase it.</Alert>
       ) : null}
-      <section className="grid-2">
-        <article className="card stack">
-          <h2>This workspace</h2>
-          <p>
-            {workspace.mode === "demo" ? "Demo mode" : "Live Fanvue connection"} · {workspace.displayName}
-          </p>
-          <p className="fine">
-            Live reads use {REQUIRED_SCOPES.join(", ")}. The app does not request permission to send chat or change media.
-          </p>
-          <form action={leaveWorkspace}>
-            <button className="button-secondary" type="submit">
-              Leave this workspace
-            </button>
-          </form>
-          <p className="fine">Leaving keeps the data until you delete it. The next demo start creates a new sample workspace.</p>
-        </article>
-        <article className="card stack">
-          <h2>Help</h2>
-          <p>
-            Support: <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a>
-          </p>
-          <p>
-            Security: <a href={`mailto:${contact.securityEmail}`}>{contact.securityEmail}</a>
-          </p>
-          {contact.supportIsPlaceholder || contact.securityIsPlaceholder ? (
-            <p className="notice error">Support or security email is still the example placeholder. The owner must replace it before submission.</p>
-          ) : null}
-          <p>
-            <Link href="/support">Support page</Link> · <Link href="/security">Security contact</Link> ·{" "}
-            <Link href="/legal/privacy">Privacy</Link> · <Link href="/legal/terms">Terms</Link>
-          </p>
-        </article>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card hierarchy="primary" type="header-only">
+          <CardHeader>
+            <CardTitle>This workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-3">
+            <p className="typography-body-default-16px-regular">
+              {workspace.mode === "demo" ? "Demo mode" : "Live Fanvue connection"} · {workspace.displayName}
+            </p>
+            <p className="typography-body-small-14px-regular text-content-secondary">
+              Live reads use {REQUIRED_SCOPES.join(", ")}. The app does not request permission to send chat or change media.
+            </p>
+            <form action={leaveWorkspace}>
+              <SubmitButton variant="secondary" size="40">
+                Leave this workspace
+              </SubmitButton>
+            </form>
+            <p className="typography-body-small-14px-regular text-content-secondary">
+              Leaving keeps the data until you delete it. The next demo start creates a new sample workspace.
+            </p>
+          </CardContent>
+        </Card>
+        <Card hierarchy="primary" type="header-only">
+          <CardHeader>
+            <CardTitle>Help</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="typography-body-default-16px-regular">
+              Support: <TextLink href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</TextLink>
+            </p>
+            <p className="typography-body-default-16px-regular">
+              Security: <TextLink href={`mailto:${contact.securityEmail}`}>{contact.securityEmail}</TextLink>
+            </p>
+            {contact.supportIsPlaceholder || contact.securityIsPlaceholder ? (
+              <Alert variant="error">
+                Support or security email is still the example placeholder. The owner must replace it before submission.
+              </Alert>
+            ) : null}
+            <p className="flex flex-wrap gap-3">
+              <TextLink href="/support">Support page</TextLink>
+              <TextLink href="/security">Security contact</TextLink>
+              <TextLink href="/legal/privacy">Privacy</TextLink>
+              <TextLink href="/legal/terms">Terms</TextLink>
+            </p>
+          </CardContent>
+        </Card>
       </section>
-      <section className="card stack">
-        <h2>Delete creator data</h2>
-        <p>
-          Erasing now removes this workspace, imported purchases, duplicate decisions, bundles, and encrypted Fanvue
-          tokens. It does not delete anything inside Fanvue.
-        </p>
-        <form action={submitDeletion} className="stack">
-          <label className="field">
-            Contact email
-            <input name="contact" type="email" required placeholder="you@example.com" />
-          </label>
-          <label className="field">
-            Note
-            <textarea name="detail" rows={4} placeholder="Optional context for the operator" />
-          </label>
-          <label>
-            <input type="checkbox" name="eraseNow" value="yes" defaultChecked /> Erase this workspace now
-          </label>
-          <button className="button-danger" type="submit">
-            Submit deletion request
-          </button>
-        </form>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card hierarchy="primary" type="header-only">
+          <CardHeader>
+            <CardTitle>Request deletion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RequestDeletionForm />
+          </CardContent>
+        </Card>
+        <Card hierarchy="primary" type="header-only">
+          <CardHeader>
+            <CardTitle>Erase workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-3">
+            <p className="typography-body-default-16px-regular">
+              Erasure is off until you open the confirmation and acknowledge it. It removes this workspace, imported
+              purchases, duplicate decisions, bundles, and encrypted Fanvue tokens. It does not delete anything inside
+              Fanvue.
+            </p>
+            <EraseWorkspaceDialog />
+          </CardContent>
+        </Card>
       </section>
     </WorkspaceShell>
   );

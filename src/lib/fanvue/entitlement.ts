@@ -55,8 +55,8 @@ export async function readEntitlement(
       status: record.status ?? "none",
       checkoutHref,
       message: checkoutHref
-        ? "An active Fanvue plan is required for live import and live audit. Payment stays on Fanvue."
-        : "An active Fanvue plan is required. Add FANVUE_PLAN_UUID to show the App Store plan deeplink.",
+        ? "An active Fanvue plan is required for live import and live audit. Fanvue shows the price, limits, and taxes before payment. Payment stays on Fanvue."
+        : "An active Fanvue plan is required before live import. The plan page is unavailable until the operator configures it. This app does not take payment itself.",
     };
   } catch (error) {
     return {

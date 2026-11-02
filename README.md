@@ -133,7 +133,7 @@ Fanvue has no sandbox. Every call hits the live API, and this app does not send 
 7. The purchased PPV has to already exist in that creator’s chats. Create it in Fanvue’s own UI if you need one. This app has no `write:chat` scope and will not send it. Import purchase history. A successful import lists the fan, the paid attachments, the free preview, and whether broadcasts were included.
 8. In the library, confirm a duplicate only when you know two media ids are the same photo. Suggestions are not created automatically. Build a bundle from the reuploaded photo plus another purchased photo and one new photo, select the fan who bought the original, and open the audit. Confirmed overlap should cite the message id, the listed price (`pricing.USD.price`), and the purchase time. That listed price is not the amount the fan paid. Chat media `amountPaid` can be lower after a discount, and the message object used for import does not include it, so this screen does not show amount paid. The new photo should say no known purchase only when coverage is complete.
 9. Webhooks need a public HTTPS URL `{APP_ORIGIN}/api/webhooks/fanvue` and `FANVUE_WEBHOOK_SECRET` from the Events tab. Subscribe to `creator.payment.succeeded`, `creator.refund.created`, `creator.dispute.flagged`, `creator.dispute.created`, `creator.message.received`, `creator.message.sent`, and `creator.message.mass_sent`. A local process is not reachable by Fanvue until `APP_ORIGIN` is the tunnel or production HTTPS origin.
-   - Subscription probe, separate from a test event: Fanvue sends an unsigned body `{ "type": "fanvue.webhook.verification" }` when the endpoint is saved. It must return 200 before any signature check and must not write a purchase, reversal, or hydration row.
+   - Subscription probe, separate from a test event: When creating a subscription through `POST /webhooks/subscriptions`, Fanvue sends an unsigned body `{ "type": "fanvue.webhook.verification" }`. The Events tab does not send this probe. It must return 200 before any signature check and must not write a purchase, reversal, or hydration row.
    - Events-tab Test, after the app is authorized: that delivery is signed. Its identifiers are prefixed `TEST-`, `purchaser.email` is `test@example.com`, and `creator.payment.succeeded` includes `transaction_id`. The app stores the event id and returns 200. It must not create a purchase, reversal, hydration row, or mark history incomplete. A real `creator.payment.succeeded` leaves `transaction_id` and `purchaser.email` null and schedules a per-chat read instead of inventing attachments.
 
    Reconciliation is “Reconcile missed updates”, which walks per-chat history again. `startDate` is not used as the only catch-up, because it filters on send time and can miss a later purchase of an older message.
@@ -174,6 +174,18 @@ npm run typecheck
 
 The database isolation test uses `DATABASE_URL` and deletes only the workspaces it creates.
 
+## Listing text
+
+English description for an owner to paste into the Fanvue App Store after checking it against the live plan. This repository does not set a price, and this text is not Fanvue approval.
+
+Bundle Audit helps a creator compare a proposed PPV photo bundle with purchased PPV chat photo attachments already on record. A photo uploaded again keeps its own media ID until the creator confirms the link. That confirmation is manual and can be reversed. The app does not detect duplicates automatically.
+
+An item can be a confirmed purchase overlap, a possible duplicate that still needs review, no known purchase overlap, or incomplete history. “No known purchase overlap” only describes purchased PPV chat photos in the synchronized history. It does not mean a fan has never seen the photo. Sent messages, free previews, tips, subscriptions, post purchases, and video are outside the audit. Listed price is `pricing.USD.price`, not the amount paid. Coverage and the last successful synchronization are shown. A failed import is not presented as an empty purchase history or a finished audit.
+
+Live import and live audit require an active Fanvue plan. Fanvue shows the price, limits, and taxes before payment. The app does not add its own checkout. The sample workspace uses labeled still-life illustrations and is stored apart from a connected account.
+
+Screenshots of that labeled sample, taken from the running app, are in `fanvue/listing/`. They are not a concept mockup. They show bundle selection, manual duplicate linking, audit evidence, and synchronization coverage.
+
 ## Scope of this version
 
 Photo bundles and purchased PPV chat photo attachments only. Read-only. No sending, deletion of Fanvue files, video matching, cross-platform fan matching, or training on creator data.
@@ -195,3 +207,15 @@ These were not settled by the documentation used for this build. The app fails c
 11. Chat list reads are assumed to have no unread side effect. Only message reads set `markAsRead=false`, because that default is documented as `true`.
 12. Retention, the legal entity, support mail, security mail, and the privacy and terms text still need the owner and counsel. Deletion inside the app is immediate for that workspace and does not delete data inside Fanvue.
 13. Age verification can return 403 with `ageVerificationUrl` on media reads. The import records that gap. It is not yet confirmed whether message history is blocked by the same check in every region.
+
+## Webhook freshness limitation
+
+Webhook delivery persists pending reconciliation and invalidates complete coverage; it does not run an automatic background import. Use **Reconcile missed updates** to refresh purchase evidence. Do not market this release as automatic real-time synchronization. A durable scheduled worker is required before making that claim.
+
+## Launch-hardening migration
+
+Apply `npx prisma migrate deploy` before running the hardened version. The new migration scopes Purchase and SentOffer identity to workspace, fan and message, preserving separate buyers even if broadcast message IDs repeat. Reimport existing creator history afterward: a migration cannot reconstruct a buyer record overwritten by an older build.
+
+Token refresh now locks the stored token row in a bounded PostgreSQL transaction. Remote API and token requests have a 15-second timeout. Imports snapshot an invalidation revision; newer webhook signals keep history incomplete instead of being overwritten by older scan results. Reconciliation remains manual in this release.
+
+Explicit workspace erasure also removes deletion requests attached to that workspace. Previously orphaned requests and operational retention still require an owner-approved policy; do not promise deletion of every backup or operational record until the deployed retention process is documented.

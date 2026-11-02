@@ -1,5 +1,8 @@
+import { EmptyState } from "@fanvue/ui";
 import { notFound } from "next/navigation";
-import { PhotoFace } from "@/components/chrome";
+import { PageIntro, PhotoFace, StatusPill } from "@/components/chrome";
+import { CopyId } from "@/components/copy-id";
+import { SubmitButton } from "@/components/submit-button";
 import { BundleSteps, WorkspaceShell } from "@/components/workspace-shell";
 import { prisma } from "@/lib/db";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -21,40 +24,47 @@ export default async function BundleBuilderPage({ params }: { params: Promise<{ 
 
   return (
     <WorkspaceShell mode={workspace.mode} displayName={workspace.displayName} current="/workspace/bundles">
-      <div className="page-head">
-        <div>
-          <p className="kicker">Bundle builder</p>
-          <h1 style={{ fontSize: "2.4rem" }}>{bundle.name}</h1>
-        </div>
-        <BundleSteps id={bundle.id} current="photos" />
-      </div>
-      <p className="fine">Only photos can be added. Video and other files stay visible so they are not silently dropped.</p>
+      <PageIntro kicker="Bundle builder" title={bundle.name} action={<BundleSteps id={bundle.id} current="photos" />} />
+      <p className="typography-body-small-14px-regular text-content-secondary">
+        Only photos can be added. Video and other files stay visible so they are not silently dropped.
+      </p>
       {uploads.length === 0 ? (
-        <div className="card empty">
-          <h3>The library is empty</h3>
-          <p className="fine">Import purchase history before building a live bundle.</p>
-        </div>
+        <EmptyState
+          variant="centered"
+          titleSize="sm"
+          mediaSize="xs"
+          title="The library is empty"
+          description="Import purchase history before building a live bundle."
+        />
       ) : (
-        <div className="photo-grid">
+        <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 lg:grid-cols-3">
           {uploads.map((upload) => {
             const on = selected.has(upload.id);
             const image = upload.kind === "image";
             return (
-              <article key={upload.id} className="photo-card" style={{ outline: on ? "2px solid var(--accent)" : undefined }}>
-                <PhotoFace src={upload.sampleAsset} label={upload.label} liveUploadId={!upload.sampleAsset && workspace.mode === "live" ? upload.id : null} />
-                <div className="meta">
-                  <h3>{upload.label}</h3>
-                  <p className="mono">{upload.mediaId}</p>
+              <article
+                key={upload.id}
+                className={`flex flex-col overflow-hidden rounded-md border bg-surface-primary ${on ? "border-brand-primary-default ring-2 ring-brand-primary-default" : "border-border-primary"}`}
+              >
+                <PhotoFace
+                  className="aspect-[4/3] w-full rounded-sm bg-surface-secondary object-cover"
+                  src={upload.sampleAsset}
+                  label={upload.label}
+                  liveUploadId={!upload.sampleAsset && workspace.mode === "live" ? upload.id : null}
+                />
+                <div className="flex flex-col gap-2 p-3">
+                  <h2 className="typography-body-default-16px-semibold">{upload.label}</h2>
+                  <CopyId label="Media" value={upload.mediaId} />
                   {image ? (
                     <form action={toggleBundlePhoto}>
                       <input type="hidden" name="bundleId" value={bundle.id} />
                       <input type="hidden" name="uploadId" value={upload.id} />
-                      <button className={on ? "button" : "button-secondary"} type="submit">
+                      <SubmitButton variant={on ? "primary" : "secondary"} size="32">
                         {on ? "Remove from bundle" : "Add to bundle"}
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : (
-                    <span className="pill incomplete">Not a photo</span>
+                    <StatusPill status="incomplete_or_unsupported_history" label="Not a photo" />
                   )}
                 </div>
               </article>

@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
-
-const sans = Outfit({ subsets: ["latin"], variable: "--font-sans" });
-const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: {
@@ -14,11 +11,33 @@ export const metadata: Metadata = {
     "Check a proposed Fanvue PPV photo bundle against purchases you have already recorded, including confirmed reuploads.",
 };
 
+const themeBoot = `
+try {
+  var stored = localStorage.getItem("bundle-audit-theme");
+  var theme = stored === "light" || stored === "dark"
+    ? stored
+    : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.style.colorScheme = theme;
+} catch (e) {}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${sans.variable} ${serif.variable}`} style={{ fontFamily: "var(--font-sans), Outfit, sans-serif", ["--serif" as string]: "var(--font-serif), Fraunces, serif", ["--sans" as string]: "var(--font-sans), Outfit, sans-serif" }}>
-        <a className="skip" href="#content">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+      </head>
+      <body className="bg-background-primary text-content-primary">
+        <Script id="bundle-audit-theme" strategy="beforeInteractive">
+          {themeBoot}
+        </Script>
+        <a
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-sm focus:bg-surface-primary focus:px-3 focus:py-2 focus:text-content-primary"
+          href="#content"
+        >
           Skip to content
         </a>
         <div id="content">{children}</div>

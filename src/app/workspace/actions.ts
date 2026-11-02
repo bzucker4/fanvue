@@ -6,6 +6,8 @@ import { canonicalPair } from "@/lib/audit/duplicates";
 import { prisma } from "@/lib/db";
 import { createDemoWorkspace } from "@/lib/demo/seed";
 import { readFanvueConfig } from "@/lib/fanvue/config";
+import { erasureConfirmed } from "@/lib/deletion";
+import { describeImportFailure } from "@/lib/live/import-failure";
 import { runLiveImport } from "@/lib/live/run-import";
 import { clearSessionCookie, writeSessionCookie } from "@/lib/session-cookie";
 import { requireWorkspace } from "@/lib/workspace-gate";
@@ -113,10 +115,12 @@ export async function importLiveHistory() {
     redirect("/workspace/connection?error=demo-import");
   }
   let message = "";
+  let outcome: "ready" | "incomplete" | "error" = "error";
   try {
-    await runLiveImport(prisma, workspace.id);
+    outcome = await runLiveImport(prisma, workspace.id);
   } catch (error) {
-    message = error instanceof Error ? error.message : "Import failed.";
+    message = describeImportFailure(error);
+    outcome = "error";
     await prisma.importState.upsert({
       where: { workspaceId: workspace.id },
       create: {
@@ -126,35 +130,48 @@ export async function importLiveHistory() {
         broadcastsIncluded: false,
         gaps: [message],
         unsupported: [],
-        methodNote: "Import did not finish. Demo data was not substituted.",
+        methodNote: "The latest import failed. Earlier purchases, if any, were kept. Demo data was not substituted.",
         lastError: message,
       },
-      update: { status: "error", lastError: message },
+      update: {
+        status: "error",
+        lastError: message,
+        historyComplete: false,
+        broadcastsIncluded: false,
+        methodNote: "The latest import failed. Earlier purchases, if any, were kept. Demo data was not substituted.",
+      },
     });
   }
   revalidatePath("/workspace/connection");
-  redirect(message ? "/workspace/connection?error=import" : "/workspace/connection?imported=1");
+  const query = outcome === "ready" ? "imported=1" : outcome === "incomplete" ? "imported=partial" : "error=import";
+  redirect(`/workspace/connection?${query}`);
 }
 
-export async function submitDeletion(formData: FormData) {
+export async function requestDeletion(formData: FormData) {
   const workspace = await workspaceOrRedirect();
   const contact = String(formData.get("contact") ?? "").trim().slice(0, 200);
   const detail = String(formData.get("detail") ?? "").trim().slice(0, 2000);
-  const eraseNow = formData.get("eraseNow") === "yes";
   if (!contact) return;
   await prisma.deletionRequest.create({
     data: {
       workspaceId: workspace.id,
       contact,
       detail: detail || "Creator requested deletion of Bundle Audit data.",
-      status: eraseNow ? "erased" : "received",
+      status: "received",
     },
   });
-  if (eraseNow) {
-    await prisma.workspace.delete({ where: { id: workspace.id } });
-    await clearSessionCookie();
-    redirect("/?deleted=1");
-  }
   revalidatePath("/workspace/settings");
   redirect("/workspace/settings?deletion=received");
+}
+
+export async function eraseWorkspace(formData: FormData) {
+  const workspace = await workspaceOrRedirect();
+  if (!erasureConfirmed(formData.get("confirm"))) return;
+  // Erasure includes request contact/detail rather than orphaning them via SetNull.
+  await prisma.$transaction([
+    prisma.deletionRequest.deleteMany({ where: { workspaceId: workspace.id } }),
+    prisma.workspace.delete({ where: { id: workspace.id } }),
+  ]);
+  await clearSessionCookie();
+  redirect("/?deleted=1");
 }

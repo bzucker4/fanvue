@@ -37,8 +37,6 @@ export interface ImportDraft {
   fans: { fanvueUuid: string; handle: string; displayName: string }[];
   purchases: MappedMessage[];
   sentOffers: MappedMessage[];
-  /** Chat counterpart for every priced message, purchased or only sent. */
-  fanByMessage: Record<string, string>;
   broadcastsIncluded: boolean;
   historyComplete: boolean;
   chatsDiscovered: number;
@@ -62,7 +60,6 @@ export async function importPurchaseHistory(client: FanvueClient): Promise<Impor
     fans: [],
     purchases: [],
     sentOffers: [],
-    fanByMessage: {},
     broadcastsIncluded: true,
     historyComplete: true,
     chatsDiscovered: 0,
@@ -106,7 +103,7 @@ export async function importPurchaseHistory(client: FanvueClient): Promise<Impor
         draft.messagesScanned += 1;
         const mapped = mapChatMessage(message);
         if (!mapped) continue;
-        draft.fanByMessage[mapped.messageId] = fanvueUuid;
+        mapped.fanvueFanId = fanvueUuid;
         if (mapped.purchased) draft.purchases.push(mapped);
         else draft.sentOffers.push(mapped);
       }
@@ -134,6 +131,7 @@ async function listAllChats(client: FanvueClient): Promise<{ rows: ChatListItem[
 async function walkChat(client: FanvueClient, fanUuid: string, draft: ImportDraft): Promise<FanvueChatMessage[]> {
   const messages: FanvueChatMessage[] = [];
   let cursor: string | null = null;
+  const seen = new Set<string>();
   for (let guard = 0; guard < 10000; guard += 1) {
     const params = new URLSearchParams({ size: "50", markAsRead: "false" });
     if (cursor) params.set("beforeMessageUuid", cursor);
@@ -150,13 +148,23 @@ async function walkChat(client: FanvueClient, fanUuid: string, draft: ImportDraf
       );
       break;
     }
-    if (!next.hasMore) break;
+    if (!next.hasMore) return messages;
     if (!next.cursor) {
       draft.historyComplete = false;
       draft.gaps.push(`Chat ${fanUuid} reported more messages without a cursor.`);
       break;
     }
+    if (seen.has(next.cursor)) {
+      draft.historyComplete = false;
+      draft.gaps.push(`Chat ${fanUuid} repeated a message cursor. Import stopped.`);
+      return messages;
+    }
+    seen.add(next.cursor);
     cursor = next.cursor;
+    if (guard === 9999) {
+      draft.historyComplete = false;
+      draft.gaps.push(`Chat ${fanUuid} reached the page limit before history ended.`);
+    }
   }
   return messages;
 }

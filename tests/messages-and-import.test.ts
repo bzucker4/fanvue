@@ -95,7 +95,7 @@ describe("per-chat import", () => {
     expect(draft.purchases.find((item) => item.messageId === purchased.uuid)?.paidMediaIds).not.toContain(
       purchased.mediaPreviewUuid,
     );
-    expect(draft.fanByMessage[broadcast.uuid]).toBe("fan-1");
+    expect(draft.purchases.find((item) => item.messageId === broadcast.uuid)?.fanvueFanId).toBe("fan-1");
   });
 
   it("marks coverage incomplete when a message page omits hasMore", async () => {
@@ -129,6 +129,50 @@ describe("per-chat import", () => {
     expect(cursors).toEqual(["", purchased.uuid]);
     expect(draft.purchases).toHaveLength(2);
     expect(draft.messagesScanned).toBe(2);
+  });
+});
+
+describe("broadcast recipient identity", () => {
+  it("retains the owning fan on each purchase even when message IDs repeat", async () => {
+    const client = new FanvueClient("fixture", async (input) => Response.json(
+      String(input).includes("/v1/chats?")
+        ? { data: [{ user: { uuid: "fan-a" } }, { user: { uuid: "fan-b" } }], nextCursor: null }
+        : { data: [broadcast], pagination: { hasMore: false } },
+    ));
+    const draft = await importPurchaseHistory(client);
+    expect(draft.purchases.map((row) => row.fanvueFanId)).toEqual(["fan-a", "fan-b"]);
+    expect(draft.purchases.map((row) => row.messageId)).toEqual([broadcast.uuid, broadcast.uuid]);
+  });
+});
+
+describe("pagination integrity", () => {
+  it("does not turn an empty page claiming more data into completion", () => {
+    expect(nextMessageCursor({ data: [], pagination: { hasMore: true } })).toEqual({
+      cursor: null, hasMore: true, paginationKnown: true,
+    });
+  });
+
+  it("marks repeated message cursors incomplete instead of looping", async () => {
+    let reads = 0;
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("/v1/chats?")) return json({ data: [{ user: { uuid: "fan-1" } }], nextCursor: null });
+      reads += 1;
+      return json({ data: [purchased], pagination: { hasMore: true } });
+    };
+    const draft = await importPurchaseHistory(new FanvueClient("token", fetchImpl));
+    expect(reads).toBe(2);
+    expect(draft.historyComplete).toBe(false);
+    expect(draft.gaps.some((gap) => gap.includes("repeated"))).toBe(true);
+  });
+
+  it("marks empty message pages claiming more history incomplete", async () => {
+    const fetchImpl: typeof fetch = async (input) => String(input).includes("/v1/chats?")
+      ? json({ data: [{ user: { uuid: "fan-1" } }], nextCursor: null })
+      : json({ data: [], pagination: { hasMore: true } });
+    const draft = await importPurchaseHistory(new FanvueClient("token", fetchImpl));
+    expect(draft.historyComplete).toBe(false);
+    expect(draft.gaps.some((gap) => gap.includes("without a cursor"))).toBe(true);
   });
 });
 

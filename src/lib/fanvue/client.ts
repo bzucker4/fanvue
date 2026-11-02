@@ -71,6 +71,7 @@ export class FanvueClient {
     try {
       const response = await this.fetchImpl(new URL(path, API_BASE), {
         ...init,
+        signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
           "X-Fanvue-API-Version": API_VERSION,
