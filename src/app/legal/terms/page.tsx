@@ -62,7 +62,7 @@ export default function TermsPage() {
               Effective date: November 2, 2026.
             </p>
             <h2 className="typography-header-heading-xs">Governing law</h2>
-            <p className="typography-body-default-16px-regular">[Governing law and venue: to be chosen with counsel.] Questions: {contact.supportEmail}.</p>
+            <p className="typography-body-default-16px-regular">These terms are governed by the laws of the State of New York, without regard to conflict-of-law rules. Disputes will be brought in the state or federal courts located in Monroe County, New York. [Counsel to confirm.] Questions: {contact.supportEmail}.</p>
           </CardContent>
         </Card>
       </main>
