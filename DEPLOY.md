@@ -2,6 +2,16 @@
 
 Do these in order. Nothing here is verified against a live Fanvue account yet.
 
+## Free testing setup (Vercel Hobby + Neon free)
+
+Use this to test end to end with a dedicated Fanvue test account at no cost. It is **not** a launch setup: Vercel Hobby is limited to personal, non-commercial use, and serverless time limits can cut off long imports. Check the current Vercel and Neon free-tier terms before relying on them. Move to an always-on host before submitting to Fanvue.
+
+1. **Database:** create a free Neon project (neon.tech, or Vercel Marketplace), in a US region close to your Vercel functions. Copy the **pooled** connection string. Prisma migrations need a direct connection, so also copy the **direct** (non-pooled) string.
+2. **Vercel project `bundle-audit`:** already created with Node 22.x, the production-only migration build command, and Vercel Auth on previews only (so the production URL is public for webhooks and OAuth). Confirm under Settings, Git that it is connected to `bzucker4/fanvue`; connect it if not.
+3. **Env vars (Production):** the table in step 3 below. `SUPPORT_EMAIL`, `SECURITY_EMAIL` and `APP_OWNER_NAME` are already set. Still to add: `DATABASE_URL`, `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `CRON_SECRET`, the Fanvue values, and `APP_ORIGIN`.
+4. **First deploy, then `APP_ORIGIN`:** the project's `*.vercel.app` address is not known until it deploys. Deploy once, read the production URL under Domains, set `APP_ORIGIN` to it (no trailing slash), register `{APP_ORIGIN}/api/oauth/callback` in the Fanvue Developer Area, and redeploy.
+5. **Fill the privacy page:** once the Neon project exists, replace the database-region bracket on `/legal/privacy`.
+
 ## 1. Database
 
 Vercel does not host PostgreSQL itself. Add one from the Vercel Marketplace (Neon, Supabase, etc.) or use any PostgreSQL 16 host. Copy its connection string for `DATABASE_URL`. Fill the provider and region into the privacy page ("Sharing and service providers").
