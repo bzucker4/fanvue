@@ -15,8 +15,7 @@ export default function TermsPage() {
           <CardContent className="flex flex-col gap-4 p-6">
             <PageIntro kicker="Terms draft" title="Terms of Service">
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: not published until the
-                operator sets it.
+                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: November 2, 2026.
               </p>
             </PageIntro>
             <h2 className="typography-header-heading-xs">The service</h2>
@@ -42,11 +41,28 @@ export default function TermsPage() {
             </p>
             <h2 className="typography-header-heading-xs">Acceptable use</h2>
             <p className="typography-body-default-16px-regular">Do not use the app to harass fans, evade Fanvue’s rules, or upload unlawful content. The sample library is for demonstration and is not a creator’s catalog.</p>
-            <h2 className="typography-header-heading-xs">Liability and law</h2>
-              <p className="typography-body-default-16px-regular">
-                Limitation of liability, a warranty disclaimer, governing law, and account termination are not published
-                yet. The operator and counsel still have to write them.
-              </p>
+            <h2 className="typography-header-heading-xs">Accounts and eligibility</h2>
+            <p className="typography-body-default-16px-regular">You must be at least 18 and allowed to use Fanvue. You are responsible for your Fanvue connection and for activity in your workspace. You can disconnect or erase your workspace in Settings at any time.</p>
+            <h2 className="typography-header-heading-xs">Warranty disclaimer</h2>
+            <p className="typography-body-default-16px-regular">
+              The app is provided “as is” and “as available”, without warranties of any kind, express or implied,
+              including fitness for a particular purpose and accuracy of results. It depends on data from Fanvue that
+              the operator does not control.
+            </p>
+            <h2 className="typography-header-heading-xs">Limitation of liability</h2>
+            <p className="typography-body-default-16px-regular">
+              To the extent the law allows, the operator is not liable for indirect, incidental, or consequential losses,
+              or for lost revenue or data, and total liability for any claim is limited to the fees you paid for the app in the
+              12 months before the claim. [Counsel to confirm wording and local limits.]
+            </p>
+            <h2 className="typography-header-heading-xs">Termination and changes</h2>
+            <p className="typography-body-default-16px-regular">
+              The operator may suspend access for misuse or if Fanvue ends the integration. You may stop at any time.
+              The operator may update these terms; continued use after the effective date means you accept them.
+              Effective date: November 2, 2026.
+            </p>
+            <h2 className="typography-header-heading-xs">Governing law</h2>
+            <p className="typography-body-default-16px-regular">These terms are governed by the laws of the State of New York, without regard to conflict-of-law rules. Disputes will be brought in the state or federal courts located in Monroe County, New York. [Counsel to confirm.] Questions: {contact.supportEmail}.</p>
           </CardContent>
         </Card>
       </main>
