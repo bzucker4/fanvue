@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 1,
+  "oauth": {
+    "scopes": ["read:self", "read:chat", "read:media", "read:creator"],
+    "redirectUris": ["https://your-app.com/api/oauth/callback"]
+  },
+  "access": {
+    "type": "off_platform",
+    "url": "https://your-app.com"
+  },
+  "webhooks": {
+    "destinations": [
+      { "topic": "creator.payment.succeeded", "url": "https://your-app.com/api/webhooks/fanvue" },
+      { "topic": "creator.refund.created", "url": "https://your-app.com/api/webhooks/fanvue" },
+      { "topic": "creator.dispute.flagged", "url": "https://your-app.com/api/webhooks/fanvue" },
+      { "topic": "creator.dispute.created", "url": "https://your-app.com/api/webhooks/fanvue" },
+      { "topic": "creator.message.received", "url": "https://your-app.com/api/webhooks/fanvue" },
+      { "topic": "creator.message.sent", "url": "https://your-app.com/api/webhooks/fanvue" },
+      { "topic": "creator.message.mass_sent", "url": "https://your-app.com/api/webhooks/fanvue" }
+    ]
+  }
+}
