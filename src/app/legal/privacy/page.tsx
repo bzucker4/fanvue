@@ -62,8 +62,9 @@ export default function PrivacyPage() {
             <h2 className="typography-header-heading-xs">Retention</h2>
             <p className="typography-body-default-16px-regular">
               Workspace data is kept while the creator keeps the workspace. Erasing the workspace in Settings removes the
-              tokens, imported records, and any deletion requests attached to it immediately. Short-lived sign-in
-              attempts expire on their own. [Proposed, for counsel to confirm: requests sent by email are completed
+              tokens, imported records, and any deletion requests attached to it immediately. A sign-in attempt is
+              deleted when it completes or is rejected; an abandoned attempt (state and an encrypted code verifier)
+              stays in the database until the operator removes it. [Operator to set a cleanup period.] [Proposed, for counsel to confirm: requests sent by email are completed
               within 30 days; backups are overwritten within [period].]
             </p>
 <h2 className="typography-header-heading-xs">Deletion</h2>

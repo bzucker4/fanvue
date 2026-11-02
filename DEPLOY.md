@@ -9,12 +9,13 @@ Vercel does not host PostgreSQL itself. Add one from the Vercel Marketplace (Neo
 ## 2. Vercel project
 
 - Import `bzucker4/fanvue`. Framework: Next.js. Node.js version: **22.x** (Project Settings, General).
-- Build command: `npx prisma migrate deploy && npm run build`. This applies migrations, including `20261102140000_recipient_scoped_messages`, before each build.
+- Build command: `if [ "$VERCEL_ENV" = "production" ]; then npx prisma migrate deploy; fi && npm run build`. Production builds apply migrations, including `20261102140000_recipient_scoped_messages`, before building. Preview builds skip migrations, so a Preview deployment can never change the production database.
+- Preview deployments need their own `DATABASE_URL` (a separate database or branch) and separate Fanvue credentials. Never copy the production `DATABASE_URL` into Preview.
 - Add a custom production domain you own. It must be HTTPS.
 
 ## 3. Environment variables
 
-Set these for **Production** (use separate Fanvue credentials for Preview/Development).
+Set these for **Production**. Preview/Development get separate values: their own database and their own Fanvue credentials.
 
 | Variable | Value |
 | --- | --- |
