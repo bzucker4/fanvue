@@ -15,8 +15,7 @@ export default function PrivacyPage() {
           <CardContent className="flex flex-col gap-4 p-6">
             <PageIntro kicker="Privacy Policy draft" title="Privacy Policy">
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: not published until the
-                operator sets it.
+                Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: November 2, 2026.
               </p>
             </PageIntro>
             <h2 className="typography-header-heading-xs">Who this describes</h2>
@@ -52,7 +51,7 @@ export default function PrivacyPage() {
             <ul className="typography-body-default-16px-regular list-disc space-y-2 pl-5">
               <li>Fanvue, the platform the creator connects.</li>
               <li>Vercel, which hosts the application.</li>
-              <li>[Database provider and region: to be filled in before publication.]</li>
+              <li>Neon, which hosts the PostgreSQL database. [Database region: to be filled in once the database is created.]</li>
             </ul>
             <h2 className="typography-header-heading-xs">Security</h2>
             <p className="typography-body-default-16px-regular">
@@ -84,7 +83,7 @@ export default function PrivacyPage() {
             <h2 className="typography-header-heading-xs">Children</h2>
             <p className="typography-body-default-16px-regular">The app is not for anyone under 18 and does not knowingly collect their data.</p>
             <h2 className="typography-header-heading-xs">Changes</h2>
-            <p className="typography-body-default-16px-regular">The operator will update this page and its effective date when practices change. Effective date: [to be set at publication].</p>
+            <p className="typography-body-default-16px-regular">The operator will update this page and its effective date when practices change. Effective date: November 2, 2026.</p>
           </CardContent>
         </Card>
       </main>
