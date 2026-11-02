@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@fanvue/ui";
-import { DraftBanner, PageIntro, SiteFooter, SiteHeader } from "@/components/chrome";
+import { PageIntro, SiteFooter, SiteHeader } from "@/components/chrome";
 import { ownerContact } from "@/lib/site";
 
 export const metadata = { title: "Privacy Policy" };
@@ -10,17 +10,16 @@ export default function PrivacyPage() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 pb-10">
-        <DraftBanner />
         <Card hierarchy="primary" type="container">
           <CardContent className="flex flex-col gap-4 p-6">
-            <PageIntro kicker="Privacy Policy draft" title="Privacy Policy">
+            <PageIntro kicker="Privacy Policy" title="Privacy Policy">
               <p className="typography-body-small-14px-regular text-content-secondary">
                 Operator: {contact.ownerName}. Contact: {contact.supportEmail}. Effective date: November 2, 2026.
               </p>
             </PageIntro>
             <h2 className="typography-header-heading-xs">Who this describes</h2>
             <p className="typography-body-default-16px-regular">
-              This draft describes Bundle Audit, an independent application that creators can connect to Fanvue. It is
+              This policy describes Bundle Audit, an independent application that creators can connect to Fanvue. It is
               not Fanvue’s privacy policy. The operator is an individual, Brian Zucker, who decides how and why the data below is
               handled. You must be at least 18 to use the app.
             </p>
@@ -64,22 +63,24 @@ export default function PrivacyPage() {
               Workspace data is kept while the creator keeps the workspace. Erasing the workspace in Settings removes the
               tokens, imported records, and any deletion requests attached to it immediately. A sign-in attempt is
               deleted when it completes or is rejected; an abandoned attempt (state and an encrypted code verifier)
-              is removed by a daily cleanup after its 10-minute window ends. [Proposed, for counsel to confirm: requests sent by email are completed
-              within 30 days; backups are overwritten within [period].]
+              is removed by a daily cleanup after its 10-minute window ends. Requests sent by email are handled within a
+              reasonable time. Database backups are kept on the database provider’s backup schedule and are overwritten
+              as it rolls over.
             </p>
 <h2 className="typography-header-heading-xs">Deletion</h2>
               <p className="typography-body-default-16px-regular">
                 A creator can erase the workspace, tokens, and imported records from Settings. A deletion request can
-                also be sent to the support address. Erasing inside the app is immediate for that workspace. The operator
-                has not published a completion window for requests that are only recorded.
+                also be sent to the support address. Erasing inside the app is immediate for that workspace. A request
+                sent by email is handled within a reasonable time.
               </p>
             <h2 className="typography-header-heading-xs">Your rights and regions</h2>
             <p className="typography-body-default-16px-regular">
               Depending on where you live, you may have the right to access, correct, export, or delete your personal
               data, to object to or restrict processing, and to complain to a data-protection authority. Contact
               {" "}{contact.supportEmail} to use these rights. The operator’s legal basis for processing is providing the
-              service the creator asked for and keeping it secure. [Counsel to confirm: legal bases, international
-              transfer mechanism, and any UK or EU representative.]
+              service the creator asked for and keeping it secure. Data is processed and stored in the United States,
+              so if you are elsewhere your data is transferred there. The operator has not appointed a UK or EU
+              representative.
             </p>
             <h2 className="typography-header-heading-xs">Children</h2>
             <p className="typography-body-default-16px-regular">The app is not for anyone under 18 and does not knowingly collect their data.</p>

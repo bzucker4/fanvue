@@ -63,6 +63,6 @@ Generate the two secrets yourself and paste them straight into Vercel. Do not co
 
 - **Import length on Vercel.** `runLiveImport` runs inside a Server Action with no `maxDuration` set. A creator with a long chat history may hit the function time limit. Test with a large account, and raise the limit on the page that submits the import (Next.js route segment config) or move imports to a background job.
 - **Existing creators must reimport** history after the migration deploys.
-- **Legal pages** (`/legal/privacy`, `/legal/terms`) are a first draft with `[bracketed]` items for counsel: governing law, liability cap, retention periods, legal bases, effective date, database provider.
+- **Legal pages** (`/legal/privacy`, `/legal/terms`) are written from what the app does and have not been reviewed by a lawyer. The owner accepts that risk. One bracket remains: the Neon database region on the privacy page. Keep the pages accurate if behavior changes, and do not promise more than you will do (deletion requests are "within a reasonable time").
 - Abandoned OAuth sign-in attempts are deleted daily by a Vercel Cron job (`vercel.json`, needs `CRON_SECRET`). Retention for orphaned deletion requests, webhook ids, and backups still needs an owner-approved policy.
 - Name availability for "Bundle Audit" has not been checked.
