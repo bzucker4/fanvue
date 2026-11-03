@@ -1,5 +1,5 @@
 import { Alert, Card, CardContent } from "@fanvue/ui";
-import { DraftBanner, PageIntro, SiteFooter, SiteHeader, TextLink } from "@/components/chrome";
+import { PageIntro, SiteFooter, SiteHeader, TextLink } from "@/components/chrome";
 import { ownerContact } from "@/lib/site";
 
 export const metadata = { title: "Security" };
@@ -10,7 +10,6 @@ export default function SecurityPage() {
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 pb-10">
-        <DraftBanner />
         <Card hierarchy="primary" type="container">
           <CardContent className="flex flex-col gap-4 p-6">
             <PageIntro kicker="Security contact" title="Report a vulnerability" />

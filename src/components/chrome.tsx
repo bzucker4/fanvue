@@ -1,5 +1,4 @@
 import {
-  Alert,
   Button,
   Link as FanvueLink,
   Pill,
@@ -77,15 +76,6 @@ export function SiteFooter() {
         </FanvueLink>
       </nav>
     </footer>
-  );
-}
-
-export function DraftBanner() {
-  return (
-    <Alert variant="warning" title="Owner and counsel must complete this page before submission.">
-      The text below is a draft for the app owner and their lawyer. It is not legal advice and it is not a finished
-      policy.
-    </Alert>
   );
 }
 

@@ -347,8 +347,8 @@ function EntitlementNote({
     );
   }
   return (
-    <Alert variant="error" title="Fanvue could not be reached" action={<a href="/connect">Reconnect Fanvue</a>}>
-      {entitlement.message} The sample workspace was not opened in its place.{" "}
+    <Alert variant="error" title="Your Fanvue plan could not be confirmed" action={<a href="/connect">Reconnect Fanvue</a>}>
+      {/[.!?]$/.test(entitlement.message) ? entitlement.message : `${entitlement.message}.`} The sample workspace was not opened in its place.{" "}
       <TextLink href="/support">Contact support</TextLink> if this continues.
     </Alert>
   );

@@ -50,7 +50,7 @@ export default function PrivacyPage() {
             <ul className="typography-body-default-16px-regular list-disc space-y-2 pl-5">
               <li>Fanvue, the platform the creator connects.</li>
               <li>Vercel, which hosts the application.</li>
-              <li>Neon, which hosts the PostgreSQL database. [Database region: to be filled in once the database is created.]</li>
+              <li>Neon, which hosts the PostgreSQL database in the AWS US East 2 (Ohio) region.</li>
             </ul>
             <h2 className="typography-header-heading-xs">Security</h2>
             <p className="typography-body-default-16px-regular">

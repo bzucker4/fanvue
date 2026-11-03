@@ -41,7 +41,7 @@ Missing Fanvue credentials never fill a live workspace with this sample.
 - `/workspace/settings` support and data deletion
 - `/legal/privacy`, `/legal/terms`, `/support`, `/security`
 
-Privacy, terms, support, and the security contact include a banner where the owner and counsel still have to finish the text. `support@example.com`, `security@example.com`, and `[App owner legal name]` are placeholders.
+Privacy, terms, support, and the security contact are filled in for the deployed app and have not been reviewed by a lawyer.
 
 ## Live Fanvue behavior
 
