@@ -35,8 +35,7 @@ export default function TermsPage() {
             <p className="typography-body-default-16px-regular">
               Live import and live audit require an active Fanvue plan. Payment stays on Fanvue. This app does not add a
               card checkout and does not publish its own price. The price, limits, and taxes are the ones Fanvue shows
-              before payment. The operator still has to create that plan in the Fanvue Developer Area. This page does
-              not name a dollar amount.
+              before payment. This page does not name a dollar amount.
             </p>
             <h2 className="typography-header-heading-xs">Acceptable use</h2>
             <p className="typography-body-default-16px-regular">Do not use the app to harass fans, evade Fanvue’s rules, or upload unlawful content. The sample library is for demonstration and is not a creator’s catalog.</p>
