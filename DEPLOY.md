@@ -10,7 +10,7 @@ Use this to test end to end with a dedicated Fanvue test account at no cost. It 
 2. **Vercel project `bundle-audit`:** already created with Node 22.x, the production-only migration build command, and Vercel Auth on previews only (so the production URL is public for webhooks and OAuth). Confirm under Settings, Git that it is connected to `bzucker4/fanvue`; connect it if not.
 3. **Env vars (Production):** the table in step 3 below. `SUPPORT_EMAIL`, `SECURITY_EMAIL` and `APP_OWNER_NAME` are already set. Still to add: `DATABASE_URL`, `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `CRON_SECRET`, the Fanvue values, and `APP_ORIGIN`.
 4. **First deploy, then `APP_ORIGIN`:** the project's `*.vercel.app` address is not known until it deploys. Deploy once, read the production URL under Domains, set `APP_ORIGIN` to it (no trailing slash), register `{APP_ORIGIN}/api/oauth/callback` in the Fanvue Developer Area, and redeploy.
-5. **Fill the privacy page:** once the Neon project exists, replace the database-region bracket on `/legal/privacy`.
+5. **Privacy page:** the database region on `/legal/privacy` is set to AWS US East 2 (Ohio). Update it if the database moves.
 
 ## 1. Database
 
@@ -63,6 +63,6 @@ Generate the two secrets yourself and paste them straight into Vercel. Do not co
 
 - **Import length on Vercel.** `runLiveImport` runs inside a Server Action with no `maxDuration` set. A creator with a long chat history may hit the function time limit. Test with a large account, and raise the limit on the page that submits the import (Next.js route segment config) or move imports to a background job.
 - **Existing creators must reimport** history after the migration deploys.
-- **Legal pages** (`/legal/privacy`, `/legal/terms`) are written from what the app does and have not been reviewed by a lawyer. The owner accepts that risk. One bracket remains: the Neon database region on the privacy page. Keep the pages accurate if behavior changes, and do not promise more than you will do (deletion requests are "within a reasonable time").
+- **Legal pages** (`/legal/privacy`, `/legal/terms`) are written from what the app does and have not been reviewed by a lawyer. The owner accepts that risk. Keep the pages accurate if behavior changes, and do not promise more than you will do (deletion requests are "within a reasonable time").
 - Abandoned OAuth sign-in attempts are deleted daily by a Vercel Cron job (`vercel.json`, needs `CRON_SECRET`). Retention for orphaned deletion requests, webhook ids, and backups still needs an owner-approved policy.
 - Name availability for "Bundle Audit" has not been checked.
