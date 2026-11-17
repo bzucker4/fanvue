@@ -123,7 +123,7 @@ async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string
             <CardContent className="typography-body-default-16px-regular flex flex-col gap-3 text-content-primary">
               <p>It does not send messages, delete files, match video, identify fans across platforms, or train a model on creator data.</p>
               <p>It does not download Fanvue media to fingerprint it. Duplicate links are confirmed by you.</p>
-              <p>The sample workspace is free to try. Activate Bundle Audit Free on Fanvue for live import and auditing.</p>
+              <p>Try the sample audit for free. Live import and auditing require a $7.99 monthly subscription per creator through Fanvue.</p>
             </CardContent>
           </Card>
         </section>

@@ -72,8 +72,8 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
                 </Button>
               )}
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Activate Bundle Audit Free on Fanvue for live import and auditing at no cost. If connection fails,
-                you can retry here.
+                Live import and auditing require a $7.99 monthly subscription per creator through Fanvue.
+                You can retry here if connection fails.
               </p>
             </CardContent>
           </Card>

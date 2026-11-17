@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { validationBypassForCreator } from "@/lib/fanvue/config";
+import { FanvueClient } from "@/lib/fanvue/client";
+import { readEntitlement } from "@/lib/fanvue/entitlement";
+import { readFanvueConfig, validationBypassForCreator } from "@/lib/fanvue/config";
 import { liveImportDecision } from "@/lib/live/import-gate";
 
 const LISTED = "00000000-0000-4000-8000-000000000003";
@@ -21,6 +23,17 @@ function env(nodeEnv: string, ids = LISTED): NodeJS.ProcessEnv {
 }
 
 describe("live import gate", () => {
+  it("denies live access when Fanvue has not made the subscription available", async () => {
+    const config = readFanvueConfig({ FANVUE_APP_UUID: "app", FANVUE_PLAN_UUID: "plan" });
+    const client = new FanvueClient("fixture-token", async () =>
+      Response.json({ message: "App not found" }, { status: 404 }),
+    );
+
+    const entitlement = await readEntitlement(config, client, null);
+    expect(entitlement).toMatchObject({ state: "inactive", status: "none", checkoutHref: null });
+    expect(liveImportDecision(entitlement, { allowed: false, reason: "disabled" }).allow).toBe(false);
+  });
+
   it("allows an active Fanvue plan without the validation flag", () => {
     const decision = liveImportDecision(
       { state: "active", planName: "Pro", currentPeriodEnd: "2026-12-01T00:00:00.000Z" },

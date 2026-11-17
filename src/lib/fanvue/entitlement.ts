@@ -1,5 +1,5 @@
 import { planDeeplink, type FanvueConfig } from "./config";
-import { FanvueClient } from "./client";
+import { FanvueApiError, FanvueClient } from "./client";
 
 export type Entitlement =
   | { state: "unconfigured"; message: string }
@@ -23,8 +23,7 @@ interface SubscriptionMe {
 
 /**
  * Access to live import and live audit is read from
- * GET /apps/{appUuid}/subscription/me (scope read:self). Creators activate the free plan
- * through the Fanvue App Store.
+ * GET /apps/{appUuid}/subscription/me (scope read:self). Creators subscribe through the Fanvue App Store.
  */
 export async function readEntitlement(
   config: FanvueConfig,
@@ -55,10 +54,18 @@ export async function readEntitlement(
       status: record.status ?? "none",
       checkoutHref,
       message: checkoutHref
-        ? "Activate Bundle Audit Free on Fanvue to import purchase history and run live audits at no cost."
-        : "Bundle Audit Free is required for live import. Contact support if the plan is unavailable.",
+        ? "Subscribe on Fanvue to import purchase history and run live audits."
+        : "An active Fanvue subscription is required for live import. Contact support if the plan is unavailable.",
     };
   } catch (error) {
+    if (error instanceof FanvueApiError && error.status === 404) {
+      return {
+        state: "inactive",
+        status: "none",
+        checkoutHref: null,
+        message: "The Bundle Audit subscription is not available to this account yet. You can still try the free sample audit.",
+      };
+    }
     return {
       state: "unknown",
       message: error instanceof Error ? error.message : "Subscription status could not be read.",

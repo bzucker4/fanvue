@@ -340,7 +340,7 @@ function EntitlementNote({
     return (
       <Alert
         variant="error"
-        action={entitlement.checkoutHref ? <a href={entitlement.checkoutHref}>View Bundle Audit Free on Fanvue</a> : undefined}
+        action={entitlement.checkoutHref ? <a href={entitlement.checkoutHref}>View the subscription on Fanvue</a> : undefined}
       >
         {entitlement.message}
       </Alert>

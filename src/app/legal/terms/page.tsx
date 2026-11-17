@@ -31,10 +31,10 @@ export default function TermsPage() {
               never seen a photo, that history is complete when the coverage panel says otherwise, or that a refund
               removed the fan’s copy. Duplicate photos match only after the creator confirms them.
             </p>
-            <h2 className="typography-header-heading-xs">Free plan</h2>
+            <h2 className="typography-header-heading-xs">Subscription</h2>
             <p className="typography-body-default-16px-regular">
-              The sample workspace is free to use. Live import and auditing are included at no cost when you activate
-              Bundle Audit Free on Fanvue.
+              The sample workspace is free to use. Live import and auditing require a $7.99 monthly subscription per
+              creator. Fanvue handles checkout, renewals, and cancellation.
             </p>
             <h2 className="typography-header-heading-xs">Acceptable use</h2>
             <p className="typography-body-default-16px-regular">Do not use the app to harass fans, evade Fanvue’s rules, or upload unlawful content. The sample library is for demonstration and is not a creator’s catalog.</p>

@@ -58,7 +58,7 @@ Documented behavior this app follows (checked against https://api.fanvue.com/doc
 - `creator.payment.succeeded` with `source: "message"` schedules a per-chat read. The event has a message id, not media ids, so the app does not invent attachments. Other payment sources are noted as outside this photo audit.
 - `creator.message.sent` is not a purchase. `creator.refund.created` and dispute events create reversal rows and do not delete the purchase.
 - API calls send `X-Fanvue-API-Version: 2025-06-26`, keep at most 5 requests in flight, and retry `429` responses using `Retry-After`.
-- Live import on Bundle Audit Free requires `GET /apps/{appUuid}/subscription/me` to report an active Fanvue subscription. The free plan link is the documented App Store deeplink `https://www.fanvue.com/app-store/details/{appUuid}?plan={planUuid}`. There is no external checkout. `FANVUE_VALIDATION_IMPORT=true` is ignored unless `NODE_ENV` is `development` or `test` and the connected Fanvue user id is listed in `FANVUE_VALIDATION_CREATOR_IDS`. `npm start` sets production and ignores the flag. Other creators still need a Fanvue plan. The workspace is labeled as a validation import. Demo purchases are not used.
+- Live import requires `GET /apps/{appUuid}/subscription/me` to report an active Fanvue subscription. The subscription link is the documented App Store deeplink `https://www.fanvue.com/app-store/details/{appUuid}?plan={planUuid}`. There is no external checkout. `FANVUE_VALIDATION_IMPORT=true` is ignored unless `NODE_ENV` is `development` or `test` and the connected Fanvue user id is listed in `FANVUE_VALIDATION_CREATOR_IDS`. `npm start` sets production and ignores the flag. Other creators still need a Fanvue plan. The workspace is labeled as a validation import. Demo purchases are not used.
 
 ## Setup
 
@@ -163,7 +163,7 @@ Register the webhook URL `{APP_ORIGIN}/api/webhooks/fanvue` for `creator.payment
 
 A suggested App Manifest fragment is in `fanvue/app-manifest.example.json`. Check it against the current manifest schema before hosting it. The owner still has to set the real redirect URI and app URL.
 
-The Bundle Audit Free plan is managed in the Fanvue Developer Area.
+The Bundle Audit subscription is $7.99 USD per creator per month and is managed in the Fanvue Developer Area.
 
 ## Tests
 
@@ -176,13 +176,13 @@ The database isolation test uses `DATABASE_URL` and deletes only the workspaces 
 
 ## Listing text
 
-English description for an owner to paste into the Fanvue App Store after checking it against the live plan. This repository does not set a price, and this text is not Fanvue approval.
+English description for an owner to paste into the Fanvue App Store after checking it against the live plan. The price is managed in Fanvue’s Developer Area.
 
 Bundle Audit helps a creator compare a proposed PPV photo bundle with purchased PPV chat photo attachments already on record. A photo uploaded again keeps its own media ID until the creator confirms the link. That confirmation is manual and can be reversed. The app does not detect duplicates automatically.
 
 An item can be a confirmed purchase overlap, a possible duplicate that still needs review, no known purchase overlap, or incomplete history. “No known purchase overlap” only describes purchased PPV chat photos in the synchronized history. It does not mean a fan has never seen the photo. Sent messages, free previews, tips, subscriptions, post purchases, and video are outside the audit. Listed price is `pricing.USD.price`, not the amount paid. Coverage and the last successful synchronization are shown. A failed import is not presented as an empty purchase history or a finished audit.
 
-Bundle Audit Free includes live import and auditing at no cost after activation on Fanvue. The sample workspace uses labeled still-life illustrations and is stored apart from a connected account.
+Live import and auditing require a $7.99 monthly Fanvue subscription per creator. The sample workspace uses labeled still-life illustrations and is stored apart from a connected account.
 
 Screenshots of that labeled sample, taken from the running app, are in `fanvue/listing/`. They are not a concept mockup. They show bundle selection, manual duplicate linking, audit evidence, and synchronization coverage.
 
@@ -202,7 +202,7 @@ These were not settled by the documentation used for this build. The app fails c
 6. No get-message-by-uuid route was used. `startDate` is exclusive and can miss a message sent before `paid_at`, so reconciliation walks per-chat history. Is there a supported single-message read?
 7. `creator.message.mass_sent` describes the send, not each fan. Per-fan broadcast purchases are taken from the per-chat copy’s `purchasedAt`. Confirm that the per-chat message uuid matches the mass-message uuid when a webhook has to be hydrated.
 8. `subscription/me` returns at most 100 managed creators and omits a creator whose subscription could not be read. This version connects the authorizing user from `GET /users/me` and does not switch agency creators. Should agency staff be in scope?
-9. Bundle Audit Free unlocks live import when Fanvue reports `hasActiveSubscription: true`. Verify this with a connected creator after the plan activates.
+9. An active Fanvue subscription unlocks live import. Before approval, a separate test creator may receive a 404 from the subscription endpoint. The sample audit is available without a subscription.
 10. Homepage store link is `https://www.fanvue.com/app-store`. Listing deeplinks use `https://www.fanvue.com/app-store/details/{appUuid}`. Confirm the index URL is the required store link before review.
 11. Chat list reads are assumed to have no unread side effect. Only message reads set `markAsRead=false`, because that default is documented as `true`.
 12. Retention, the legal entity, support mail, security mail, and the privacy and terms text still need the owner and counsel. Deletion inside the app is immediate for that workspace and does not delete data inside Fanvue.
