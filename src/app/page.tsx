@@ -123,10 +123,7 @@ async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string
             <CardContent className="typography-body-default-16px-regular flex flex-col gap-3 text-content-primary">
               <p>It does not send messages, delete files, match video, identify fans across platforms, or train a model on creator data.</p>
               <p>It does not download Fanvue media to fingerprint it. Duplicate links are confirmed by you.</p>
-              <p>
-                Live import and live audit require an active Fanvue plan. Fanvue shows the price, limits, and taxes
-                before payment. This app does not publish a price and does not run its own checkout.
-              </p>
+              <p>The sample workspace is free to try. Activate Bundle Audit Free on Fanvue for live import and auditing.</p>
             </CardContent>
           </Card>
         </section>

@@ -22,9 +22,9 @@ interface SubscriptionMe {
 }
 
 /**
- * Live import and live audit are the paid surface. Entitlement is read from
- * GET /apps/{appUuid}/subscription/me (scope read:self). Checkout, when offered,
- * is the documented Fanvue App Store deeplink.
+ * Access to live import and live audit is read from
+ * GET /apps/{appUuid}/subscription/me (scope read:self). Creators activate the free plan
+ * through the Fanvue App Store.
  */
 export async function readEntitlement(
   config: FanvueConfig,
@@ -55,8 +55,8 @@ export async function readEntitlement(
       status: record.status ?? "none",
       checkoutHref,
       message: checkoutHref
-        ? "An active Fanvue plan is required for live import and live audit. Fanvue shows the price, limits, and taxes before payment. Payment stays on Fanvue."
-        : "An active Fanvue plan is required before live import. The plan page is unavailable until the operator configures it. This app does not take payment itself.",
+        ? "Activate Bundle Audit Free on Fanvue to import purchase history and run live audits at no cost."
+        : "Bundle Audit Free is required for live import. Contact support if the plan is unavailable.",
     };
   } catch (error) {
     return {

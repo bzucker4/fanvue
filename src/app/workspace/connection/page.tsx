@@ -177,7 +177,7 @@ export default async function ConnectionPage({
       <section className="flex flex-col gap-3">
         <h2 className="typography-header-heading-xs">Purchase evidence</h2>
         <Alert variant="neutral">
-          Listed price is the message’s pricing.USD.price. The amount the fan paid can differ after a discount and is
+          Listed price is the price set on the message. The amount the fan paid can differ after a discount and is
           not on this record.
         </Alert>
         {purchases.length === 0 ? (
@@ -340,7 +340,7 @@ function EntitlementNote({
     return (
       <Alert
         variant="error"
-        action={entitlement.checkoutHref ? <a href={entitlement.checkoutHref}>View price and limits on Fanvue</a> : undefined}
+        action={entitlement.checkoutHref ? <a href={entitlement.checkoutHref}>View Bundle Audit Free on Fanvue</a> : undefined}
       >
         {entitlement.message}
       </Alert>

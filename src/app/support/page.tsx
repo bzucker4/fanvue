@@ -30,7 +30,7 @@ export default function SupportPage() {
             <p className="typography-body-default-16px-regular">
               Supported evidence is purchased PPV chat photos, including a broadcast purchase that appears in per-chat
               history. Free previews, messages that were only sent, post purchases, tips, subscriptions, and video are
-              outside the audit. Listed price is the message’s pricing.USD.price, not the amount the fan paid. “No known
+              outside the audit. Listed price is the price set on the message. The amount the fan paid may differ. “No known
               purchase overlap” does not mean a fan has never seen the photo.
             </p>
             <h2 className="typography-header-heading-xs">Reading a result</h2>

@@ -72,9 +72,8 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
                 </Button>
               )}
               <p className="typography-body-small-14px-regular text-content-secondary">
-                Live import and live audit require an active Fanvue plan. Fanvue shows the price, limits, and taxes
-                before payment. This app does not publish a price and does not add its own checkout. A failed connection
-                stays on this screen. It does not open the sample workspace.
+                Activate Bundle Audit Free on Fanvue for live import and auditing at no cost. If connection fails,
+                you can retry here.
               </p>
             </CardContent>
           </Card>

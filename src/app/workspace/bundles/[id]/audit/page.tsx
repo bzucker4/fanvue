@@ -183,7 +183,7 @@ function Evidence({ item }: { item: ItemAudit }) {
     <div className="flex flex-col gap-3">
       {item.purchaseEvidence.length > 0 ? (
         <Alert variant="neutral">
-          Listed price is pricing.USD.price, not the amount paid. The charged amount is not imported from this message.
+          Listed price is the price set on the message. The amount the fan paid may differ.
         </Alert>
       ) : null}
       {item.purchaseEvidence.map((evidence) => (
